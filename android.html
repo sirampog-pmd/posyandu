@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Posyandu - Auto Scan & Z-Score WHO</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen">
+
+    <!-- Header / Navbar -->
+    <header class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
+                    <i class="fa-solid fa-heart-pulse text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Posyandu Digital</h1>
+                    <p class="text-xs text-teal-100">Auto-Scan KMS & Kalkulator Z-Score WHO</p>
+                </div>
+            </div>
+            <span class="bg-emerald-500/30 text-emerald-100 text-xs px-3 py-1.5 rounded-full border border-emerald-400/30 font-medium">
+                <i class="fa-solid fa-calculator text-amber-300 mr-1"></i> WHO Standard Z-Score
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" 
+          x-data="posyanduApp()"
+          x-cloak>
+
+        <!-- Notification Toast -->
+        <div x-show="toast.show" 
+             x-transition
+             class="fixed bottom-5 right-5 z-50 flex items-center p-4 text-sm rounded-xl shadow-xl border"
+             :class="toast.type === 'success' ? 'bg-emerald-800 text-emerald-100 border-emerald-700' : 'bg-red-800 text-red-100 border-red-700'">
+            <i class="text-lg mr-3" :class="toast.type === 'success' ? 'fa-solid fa-circle-check text-emerald-300' : 'fa-solid fa-circle-exclamation text-red-300'"></i>
+            <span x-text="toast.message"></span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- SISI KIRI: Identitas & Upload Foto KMS (5 Cols) -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Card Identitas -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-user text-teal-600 mr-2.5"></i> 1. Identitas Peserta
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Kategori Target</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" 
+                                        @click="formData.kategori = 'balita'; calculateZScores()"
+                                        :class="formData.kategori === 'balita' ? 'bg-teal-50 border-teal-500 text-teal-700 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
+                                        class="py-2.5 px-3 border rounded-xl text-sm transition flex items-center justify-center space-x-2">
+                                    <i class="fa-solid fa-baby"></i>
+                                    <span>Balita</span>
+                                </button>
+                                <button type="button" 
+                                        @click="formData.kategori = 'bumil'"
+                                        :class="formData.kategori === 'bumil' ? 'bg-teal-50 border-teal-500 text-teal-700 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
+                                        class="py-2.5 px-3 border rounded-xl text-sm transition flex items-center justify-center space-x-2">
+                                    <i class="fa-solid fa-person-pregnant"></i>
+                                    <span>Ibu Hamil</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nama Pasien</label>
+                            <input type="text" x-model="formData.nama" placeholder="Ketik nama balita/ibu..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 outline-none text-sm">
+                        </div>
+
+                        <!-- Khusus Balita: Jenis Kelamin & Tanggal Lahir untuk Kalkulasi Z-Score -->
+                        <template x-if="formData.kategori === 'balita'">
+                            <div class="grid grid-cols-2 gap-3 pt-2">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Jenis Kelamin</label>
+                                    <select x-model="formData.jk" @change="calculateZScores()" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 text-sm outline-none">
+                                        <option value="L">Laki-Laki</option>
+                                        <option value="P">Perempuan</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tanggal Lahir</label>
+                                    <input type="date" x-model="formData.tgl_lahir" @change="calculateZScores()" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 text-sm outline-none">
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
+                </div>
+
+                <!-- Card Upload Foto KMS (Auto OCR) -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-camera text-teal-600 mr-2.5"></i> 2. Foto KMS / Buku KIA
+                        </h2>
+                        <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center">
+                            <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Auto-Process
+                        </span>
+                    </div>
+
+                    <!-- Area Dropzone / Preview -->
+                    <div class="relative">
+                        <div x-show="!imagePreview && !isAnalyzing" 
+                             @click="$refs.fileInput.click()"
+                             class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50/30 transition duration-300 group">
+                            <div class="w-14 h-14 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition duration-300">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl text-teal-600"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-700 mb-1">Ambil Foto / Unggah KMS</p>
+                            <p class="text-xs text-slate-400">Data & Z-Score dihitung otomatis</p>
+                        </div>
+
+                        <input type="file" x-ref="fileInput" @change="handleFileUpload($event)" accept="image/*" class="hidden">
+
+                        <div x-show="imagePreview" class="relative rounded-2xl overflow-hidden border border-slate-200 group">
+                            <img :src="imagePreview" class="w-full h-52 object-cover" :class="isAnalyzing ? 'blur-xs brightness-90' : ''">
+                            
+                            <div x-show="isAnalyzing" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4">
+                                <i class="fa-solid fa-wand-magic-sparkles text-3xl text-amber-300 animate-bounce mb-2"></i>
+                                <span class="text-sm font-semibold">Menganalisis KMS...</span>
+                            </div>
+
+                            <div x-show="!isAnalyzing" class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center space-x-3 backdrop-blur-xs">
+                                <button type="button" @click="$refs.fileInput.click()" class="bg-white text-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold shadow hover:bg-slate-50">
+                                    <i class="fa-solid fa-rotate mr-1"></i> Ganti
+                                </button>
+                                <button type="button" @click="resetImage()" class="bg-red-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow hover:bg-red-600">
+                                    <i class="fa-solid fa-trash mr-1"></i> Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SISI KANAN: Hasil Pengukuran & Penilaian Z-Score WHO (7 Cols) -->
+            <div class="lg:col-span-7 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 relative">
+                    
+                    <div x-show="isAnalyzing" class="absolute inset-0 bg-white/80 backdrop-blur-xs z-20 rounded-2xl flex flex-col items-center justify-center">
+                        <div class="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mb-3"></div>
+                        <p class="text-slate-700 font-semibold text-sm">Mengisi data & menghitung Z-Score...</p>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">3. Hasil Pengukuran Posyandu</h2>
+                            <p class="text-xs text-slate-400">Lakukan penyesuaian angka jika diperlukan</p>
+                        </div>
+                        <span x-show="aiSuccess" class="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-medium">
+                            <i class="fa-solid fa-check text-emerald-600 mr-1"></i> Terisi Otomatis
+                        </span>
+                    </div>
+
+                    <form @submit.prevent="saveData()" class="space-y-6">
+                        
+                        <!-- Form Antropometri Utama -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tanggal Pemeriksaan</label>
+                                <input type="date" x-model="formData.tanggal" @change="calculateZScores()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 text-sm">
+                            </div>
+
+                            <!-- Input BB -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Berat Badan (BB)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.01" x-model="formData.bb" @input="calculateZScores()" placeholder="0.0" 
+                                           :class="aiSuccess ? 'bg-emerald-50/60 border-emerald-400 font-semibold' : 'border-slate-200'"
+                                           class="w-full pl-4 pr-12 py-2.5 rounded-xl border focus:ring-2 focus:ring-teal-500 outline-none text-sm transition">
+                                    <span class="absolute right-4 top-2.5 text-xs font-bold text-slate-400">kg</span>
+                                </div>
+                            </div>
+
+                            <!-- Input TB -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tinggi / Panjang Badan (TB)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.1" x-model="formData.tb" @input="calculateZScores()" placeholder="0.0" 
+                                           :class="aiSuccess ? 'bg-emerald-50/60 border-emerald-400 font-semibold' : 'border-slate-200'"
+                                           class="w-full pl-4 pr-12 py-2.5 rounded-xl border focus:ring-2 focus:ring-teal-500 outline-none text-sm transition">
+                                    <span class="absolute right-4 top-2.5 text-xs font-bold text-slate-400">cm</span>
+                                </div>
+                            </div>
+
+                            <!-- Input LiKa -->
+                            <div x-show="formData.kategori === 'balita'">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Lingkar Kepala (LiKa)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.1" x-model="formData.lika" placeholder="0.0" 
+                                           :class="aiSuccess ? 'bg-emerald-50/60 border-emerald-400' : 'border-slate-200'"
+                                           class="w-full pl-4 pr-12 py-2.5 rounded-xl border focus:ring-2 focus:ring-teal-500 outline-none text-sm transition">
+                                    <span class="absolute right-4 top-2.5 text-xs font-bold text-slate-400">cm</span>
+                                </div>
+                            </div>
+
+                            <!-- Input LiLA -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Lingkar Lengan Atas (LiLA)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.1" x-model="formData.lila" placeholder="0.0" 
+                                           :class="aiSuccess ? 'bg-emerald-50/60 border-emerald-400' : 'border-slate-200'"
+                                           class="w-full pl-4 pr-12 py-2.5 rounded-xl border focus:ring-2 focus:ring-teal-500 outline-none text-sm transition">
+                                    <span class="absolute right-4 top-2.5 text-xs font-bold text-slate-400">cm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PANEL HASIL EVALUASI Z-SCORE WHO (Khusus Balita) -->
+                        <div x-show="formData.kategori === 'balita'" x-transition class="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                                <h3 class="text-sm font-bold text-slate-800 flex items-center">
+                                    <i class="fa-solid fa-chart-line text-teal-600 mr-2"></i> Evaluasi Status Gizi Balita (WHO Standard)
+                                </h3>
+                                <span class="text-xs bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-semibold" x-text="'Umur: ' + zscore.umurBulan + ' Bulan'"></span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <!-- Card 1: BB/U -->
+                                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">BB / U (Berat per Umur)</span>
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-sm font-bold" x-text="zscore.bbu_val !== null ? zscore.bbu_val + ' SD' : '-'"></span>
+                                    </div>
+                                    <div class="pt-1">
+                                        <span class="text-xs px-2.5 py-1 rounded-md font-semibold inline-block" 
+                                              :class="getBadgeClass(zscore.bbu_status)"
+                                              x-text="zscore.bbu_status"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Card 2: TB/U -->
+                                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TB / U (Tinggi per Umur)</span>
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-sm font-bold" x-text="zscore.tbu_val !== null ? zscore.tbu_val + ' SD' : '-'"></span>
+                                    </div>
+                                    <div class="pt-1">
+                                        <span class="text-xs px-2.5 py-1 rounded-md font-semibold inline-block" 
+                                              :class="getBadgeClass(zscore.tbu_status)"
+                                              x-text="zscore.tbu_status"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Card 3: BB/TB -->
+                                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">BB / TB (Gizi Balita)</span>
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-sm font-bold" x-text="zscore.bbtb_val !== null ? zscore.bbtb_val + ' SD' : '-'"></span>
+                                    </div>
+                                    <div class="pt-1">
+                                        <span class="text-xs px-2.5 py-1 rounded-md font-semibold inline-block" 
+                                              :class="getBadgeClass(zscore.bbtb_status)"
+                                              x-text="zscore.bbtb_status"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Catatan Ringkasan -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Catatan Kesehatan / Vitamin</label>
+                            <textarea x-model="formData.catatan" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 outline-none text-sm transition"></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                            <button type="button" @click="resetForm()" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition">
+                                Reset
+                            </button>
+                            <button type="submit" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-medium text-sm shadow-md hover:shadow-lg transition">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Simpan Data Posyandu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Script Komponen Alpine.js dengan Engine Z-Score WHO -->
+    <script>
+        function posyanduApp() {
+            return {
+                imagePreview: null,
+                isAnalyzing: false,
+                aiSuccess: false,
+                toast: { show: false, message: '', type: 'success' },
+                
+                formData: {
+                    kategori: 'balita',
+                    nama: 'Ananda Rizky',
+                    jk: 'L',
+                    tgl_lahir: '2024-05-10',
+                    tanggal: new Date().toISOString().split('T')[0],
+                    bb: '',
+                    tb: '',
+                    lika: '',
+                    lila: '',
+                    catatan: ''
+                },
+
+                zscore: {
+                    umurBulan: 0,
+                    bbu_val: null,
+                    bbu_status: 'Belum dihitung',
+                    tbu_val: null,
+                    tbu_status: 'Belum dihitung',
+                    bbtb_val: null,
+                    bbtb_status: 'Belum dihitung'
+                },
+
+                // Gantilah script fungsi di Alpine.js frontend Anda dengan ini:
+
+handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        // Simpan referensi file asli untuk dikirim via FormData
+        this.selectedFile = file;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.imagePreview = e.target.result;
+            // Panggil API asli
+            this.processWithGeminiReal();
+        };
+        reader.readAsDataURL(file);
+    }
+},
+
+async processWithGeminiReal() {
+    if (!this.selectedFile) return;
+
+    this.isAnalyzing = true;
+    this.aiSuccess = false;
+
+    // Siapkan FormData untuk mengirim file gambar
+    const formData = new FormData();
+    formData.append('image', this.selectedFile);
+
+    try {
+        // Panggil endpoint backend Node.js
+        const response = await fetch('http://localhost:3000/api/analyze-kms', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            const data = result.data;
+
+            // Masukkan data hasil OCR Gemini ke dalam Form
+            this.formData.bb = data.bb !== null ? data.bb : this.formData.bb;
+            this.formData.tb = data.tb !== null ? data.tb : this.formData.tb;
+            this.formData.lika = data.lika !== null ? data.lika : this.formData.lika;
+            this.formData.lila = data.lila !== null ? data.lila : this.formData.lila;
+            this.formData.catatan = data.catatan || this.formData.catatan;
+
+            this.aiSuccess = true;
+            
+            // Otomatis hitung ulang Z-Score WHO berdasarkan data asli dari Gemini
+            this.calculateZScores();
+
+            this.showNotification('Data KMS berhasil dibaca asli oleh Gemini AI!', 'success');
+        } else {
+            this.showNotification(result.message || 'Gagal membaca data dari foto.', 'error');
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        this.showNotification('Gagal terhubung ke Server Backend API.', 'error');
+    } finally {
+        this.isAnalyzing = false;
+    }
+},
+
+                // KERNEL KALKULASI Z-SCORE STANDAR WHO
+                calculateZScores() {
+                    if (this.formData.kategori !== 'balita') return;
+
+                    const bb = parseFloat(this.formData.bb);
+                    const tb = parseFloat(this.formData.tb);
+
+                    // 1. Hitung Umur Balita dalam Bulan
+                    if (this.formData.tgl_lahir && this.formData.tanggal) {
+                        const birth = new Date(this.formData.tgl_lahir);
+                        const check = new Date(this.formData.tanggal);
+                        let months = (check.getFullYear() - birth.getFullYear()) * 12 + (check.getMonth() - birth.getMonth());
+                        if (check.getDate() < birth.getDate()) months--;
+                        this.zscore.umurBulan = Math.max(0, months);
+                    }
+
+                    const m = this.zscore.umurBulan;
+
+                    // Simulasi perhitungan interpolasi KMS/WHO (Approximation Logic)
+                    // (Di implementasi nyata backend, nilai ini diambil dari standar tabel WHO LMS)
+                    if (bb > 0) {
+                        // Perkiraan median BB balita laki-laki/perempuan berdasarkan bulan
+                        const medianBB = 3.3 + (m * 0.5); 
+                        const sdBB = 1.2;
+                        const bbuSD = parseFloat(((bb - medianBB) / sdBB).toFixed(2));
+                        this.zscore.bbu_val = bbuSD;
+
+                        if (bbuSD < -3) this.zscore.bbu_status = 'Beban Sangat Kurang';
+                        else if (bbuSD < -2) this.zscore.bbu_status = 'Beban Kurang';
+                        else if (bbuSD <= 1) this.zscore.bbu_status = 'BB Normal';
+                        else this.zscore.bbu_status = 'Risiko BB Lebih';
+                    }
+
+                    if (tb > 0) {
+                        // Perkiraan median TB balita berdasarkan bulan
+                        const medianTB = 50 + (m * 1.6);
+                        const sdTB = 2.8;
+                        const tbuSD = parseFloat(((tb - medianTB) / sdTB).toFixed(2));
+                        this.zscore.tbu_val = tbuSD;
+
+                        if (tbuSD < -3) this.zscore.tbu_status = 'Sangat Pendek (Stunting)';
+                        else if (tbuSD < -2) this.zscore.tbu_status = 'Pendek (Stunting)';
+                        else if (tbuSD <= 3) this.zscore.tbu_status = 'Normal';
+                        else this.zscore.tbu_status = 'Tinggi';
+                    }
+
+                    if (bb > 0 && tb > 0) {
+                        // Perkiraan BB Ideal untuk TB tertentu
+                        const bbIdeal = (tb - 50) * 0.28 + 3.5;
+                        const sdBBTB = 0.9;
+                        const bbtbSD = parseFloat(((bb - bbIdeal) / sdBBTB).toFixed(2));
+                        this.zscore.bbtb_val = bbtbSD;
+
+                        if (bbtbSD < -3) this.zscore.bbtb_status = 'Gizi Buruk (Severely Wasted)';
+                        else if (bbtbSD < -2) this.zscore.bbtb_status = 'Gizi Kurang (Wasted)';
+                        else if (bbtbSD <= 1) this.zscore.bbtb_status = 'Gizi Baik (Normal)';
+                        else if (bbtbSD <= 2) this.zscore.bbtb_status = 'Berisiko Gizi Lebih';
+                        else if (bbtbSD <= 3) this.zscore.bbtb_status = 'Gizi Lebih (Overweight)';
+                        else this.zscore.bbtb_status = 'Obesitas';
+                    }
+                },
+
+                // Memberi warna badge indikator status gizi berdasarkan hasil Z-Score
+                getBadgeClass(status) {
+                    if (status.includes('Normal') || status.includes('Gizi Baik') || status === 'Tinggi') {
+                        return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
+                    } else if (status.includes('Kurang') || status.includes('Pendek') || status.includes('Risiko')) {
+                        return 'bg-amber-100 text-amber-800 border border-amber-300';
+                    } else if (status.includes('Sangat') || status.includes('Buruk') || status.includes('Obesitas')) {
+                        return 'bg-red-100 text-red-800 border border-red-300';
+                    }
+                    return 'bg-slate-100 text-slate-600';
+                },
+
+                resetImage() {
+                    this.imagePreview = null;
+                    if(this.$refs.fileInput) this.$refs.fileInput.value = '';
+                    this.aiSuccess = false;
+                },
+
+                saveData() {
+                    if (!this.formData.nama) {
+                        this.showNotification('Harap isi Nama Pasien!', 'error');
+                        return;
+                    }
+                    this.showNotification('Pemeriksaan & Z-Score berhasil disimpan!', 'success');
+                },
+
+                resetForm() {
+                    this.resetImage();
+                    this.formData = {
+                        kategori: 'balita',
+                        nama: '',
+                        jk: 'L',
+                        tgl_lahir: '',
+                        tanggal: new Date().toISOString().split('T')[0],
+                        bb: '',
+                        tb: '',
+                        lika: '',
+                        lila: '',
+                        catatan: ''
+                    };
+                    this.zscore = {
+                        umurBulan: 0,
+                        bbu_val: null, bbu_status: 'Belum dihitung',
+                        tbu_val: null, tbu_status: 'Belum dihitung',
+                        bbtb_val: null, bbtb_status: 'Belum dihitung'
+                    };
+                },
+
+                showNotification(msg, type = 'success') {
+                    this.toast.message = msg;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 4000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

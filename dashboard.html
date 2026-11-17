@@ -1,0 +1,3043 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Digital ePosyandu Terintegrasi 6 SPM</title>
+  <link rel="shortcut icon" type="image/png" href="https://lh3.googleusercontent.com/d/1Dw8TAxb0lZB8CMXdBFOxi0jR0q4UHSOU">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <!-- Tailwind CSS & FontAwesome CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet GIS CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    #map {
+      height: 480px;
+      width: 100%;
+      border-radius: 1rem;
+      z-index: 1;
+    }
+    
+    @media print {
+      .no-print, header, footer, nav, button {
+        display: none !important;
+      }
+      body {
+        background-color: white !important;
+        color: black !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      #printArea {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      table {
+        font-size: 10pt !important;
+        width: 100% !important;
+      }
+    }
+    .print-only {
+      display: none;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .pulsing-marker {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pulsing-marker .core {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid white;
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .pulsing-marker .pulse-ring {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid;
+      animation: pulse-ring 1.8s ease-out infinite;
+      opacity: 0;
+      z-index: 1;
+    }
+    .pulsing-marker .pulse-ring:nth-child(2) {
+      animation-delay: 0.6s;
+    }
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.3);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1.4);
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulse-slow {
+      0%, 100% { transform: scale(1) translate(0, 0); }
+      50% { transform: scale(1.1) translate(-20px, 20px); }
+    }
+    .animate-blob {
+      animation: pulse-slow 8s infinite ease-in-out;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .form-input {
+      @apply w-full mt-1 p-2.5 border rounded-xl focus:ring-2 focus:ring-teal-400 outline-none bg-white/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100;
+    }
+    .form-select {
+      @apply w-full mt-1 p-2.5 border rounded-xl focus:ring-2 focus:ring-teal-400 outline-none bg-white/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100;
+    }
+    .form-label {
+      @apply block text-xs font-medium text-slate-500 dark:text-slate-400;
+    }
+
+    .progress-bar {
+      transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+
+    .shimmer-effect {
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+      100% {
+        background-position: 200% 0;
+      }
+    }
+
+    .status-badge {
+      animation: pulse-badge 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    .dark .shimmer-effect {
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+
+    .progress-percentage {
+      transition: all 0.5s ease;
+    }
+  </style>
+
+</head>
+<body class="bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 text-slate-800 dark:text-slate-100 antialiased min-h-screen flex flex-col transition-colors duration-300">
+
+  <!-- ============================================================ -->
+  <!--                      LOGIN PAGE                               -->
+  <!-- ============================================================ -->
+  <div id="loginPage" class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 relative overflow-x-hidden font-sans">
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl animate-blob pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-600/20 rounded-full blur-3xl animate-blob pointer-events-none" style="animation-delay: 4s;"></div>
+
+    <div x-data="authApp()" class="w-full max-w-md glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 my-8">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-indigo-600/20 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto mb-3 text-indigo-400">
+          <i data-lucide="activity" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-2xl font-bold tracking-tight text-white">ePosyandu Portal</h2>
+        <p class="text-xs text-slate-400 mt-1">Sistem Informasi Layanan Kesehatan Posyandu Terintegrasi 6 SPM</p>
+      </div>
+      <div x-show="activeTab === 'login'" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Username / Email</label>
+            <div class="relative">
+              <input type="text" x-model="loginForm.username" required placeholder="Masukkan username/email"
+                     class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+              <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3"></i>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+            <div class="relative">
+              <input type="password" x-model="loginForm.password" required placeholder="••••••••"
+                     class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+              <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3"></i>
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" @click="switchTab('forgot')" class="text-[11px] text-indigo-400 hover:underline">Lupa Password?</button>
+          </div>
+          <button type="submit" :disabled="loading" 
+                  class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-semibold text-xs shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 disabled:opacity-50">
+            <template x-if="!loading">
+              <span class="flex items-center gap-2">Masuk Ke Dashboard <i data-lucide="arrow-right" class="w-4 h-4"></i></span>
+            </template>
+            <template x-if="loading">
+              <span class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...</span>
+            </template>
+          </button>
+        </form>
+        <div class="text-center mt-6 text-xs text-slate-400">
+          Belum memiliki akun? <button @click="switchTab('register')" class="text-indigo-400 font-semibold hover:underline">Daftar Sekarang</button>
+        </div>
+      </div>      
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!--                  DASHBOARD                                    -->
+  <!-- ============================================================ -->
+  <div id="dashboardPage" class="hidden flex flex-col min-h-screen w-full">
+
+    <!-- Header / Navbar -->
+    <header class="relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-100 via-sky-200 to-blue-300 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 backdrop-blur-xl shadow-xl shadow-slate-200/50 dark:shadow-black/60 border-b border-slate-200/80 dark:border-white/10 no-print transition-all duration-300">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="p-3 bg-emerald-500/20 backdrop-blur-md rounded-2xl border border-emerald-400/30">
+            <img src="https://lh3.googleusercontent.com/d/1Dw8TAxb0lZB8CMXdBFOxi0jR0q4UHSOU" alt="Logo" class="h-12 w-auto object-contain drop-shadow" style="border-radius:20%;width:50px;height:auto;">
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-300 dark:from-white dark:via-slate-200 dark:to-emerald-400 bg-clip-text text-transparent">
+              ePosyandu Kecamatan Sirampog
+            </h1>
+            <p class="text-xs text-emerald-200/80 dark:text-emerald-300/70 font-medium">Monitoring Standar Pelayanan Minimal Desa Terpadu - 6 SPM Digital</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <button onclick="switchPage('posyandu')" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-100 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 border border-slate-700 dark:border-slate-600 flex items-center space-x-2" title="Pindah ke Halaman Admin">
+            <i class="fa-solid fa-user-shield text-amber-400"></i>
+            <span class="hidden sm:inline">Admin Panel</span>
+          </button>
+          <button onclick="toggleTheme()" type="button"
+            class="group relative inline-flex items-center justify-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-300/70 dark:border-slate-700 font-semibold text-xs py-2 px-3.5 rounded-xl transition-all duration-200 shadow-sm">
+            <i class="fa-solid fa-sun text-amber-500 transition-transform duration-300 group-hover:rotate-45 dark:hidden"></i>
+            <i class="fa-solid fa-moon text-blue-400 transition-transform duration-300 group-hover:-rotate-12 hidden dark:inline"></i>
+          </button>
+          <button onclick="loadData()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-lg shadow-emerald-500/25 flex items-center space-x-2">
+            <i id="refreshIcon" class="fa-solid fa-rotate"></i>
+            <span>Muat Data</span>
+          </button>
+          <button onclick="handleLogout()" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-lg shadow-rose-500/25 flex items-center space-x-2">
+            <i class="fa-solid fa-sign-out-alt"></i>
+            <span class="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-50 dark:opacity-80"></div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+      <!-- Loading Overlay -->
+      <div id="loading" class="flex flex-col items-center justify-center py-20 space-y-4 no-print">
+        <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Memproses data 6 SPM dari Firebase...</p>
+      </div>
+
+      <!-- Dashboard Content -->
+      <div id="content" class="hidden space-y-8">
+		<div id="inactiveUsersContainer" class="w-full no-print" style="display: none;"></div>
+        <!-- NAVIGATION TAB -->
+        <div class="flex flex-wrap border-b border-slate-200 dark:border-white/10 no-print space-x-2">
+          <button id="btnTabDashboard" onclick="switchTab('dashboard')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-chart-pie"></i><span>Ringkasan Dashboard</span>
+          </button>
+          <button id="btnTabMap" onclick="switchTab('map')" class="px-4 py-2.5 font-semibold text-sm border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-map-location-dot"></i><span>Peta Sebaran Stunting & SPM</span>
+          </button>
+          <button id="btnTabReport" onclick="switchTab('report')" class="px-4 py-2.5 font-semibold text-sm border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-file-invoice"></i><span>Laporan Bulanan (SIP)</span>
+          </button>
+          <button id="btnTabSpmDigital" onclick="switchTab('spmDigital')" class="px-4 py-2.5 font-semibold text-sm border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-clipboard-check"></i><span>Input & 6 SPM Digital</span>
+          </button>
+        </div>
+
+        <!-- VIEW TAB 1: DASHBOARD -->
+        <div id="viewDashboard" class="space-y-8">
+          
+          <!-- KARTU METRIK UTAMA -->
+          <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            
+            <div class="group relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-cyan-500/5 to-transparent dark:from-emerald-600/20 dark:via-cyan-600/10 dark:to-transparent backdrop-blur-xl p-5 rounded-2xl border border-emerald-200/50 dark:border-emerald-500/20 shadow-lg shadow-emerald-500/5 hover:shadow-emerald-500/15 hover:-translate-y-1 transition-all duration-300">
+              <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <p class="text-xs font-bold text-slate-400 dark:text-emerald-300 uppercase tracking-wider">Capaian Rata-Rata SPM</p>
+              <h3 id="kpiSpm" class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">0%</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                <span class="text-emerald-500 dark:text-emerald-400 font-bold mr-1"><i class="fa-solid fa-circle-check"></i> Indikator SPM</span> Terintegrasi
+              </p>
+            </div>
+
+            <div class="group relative overflow-hidden bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent dark:from-blue-600/20 dark:via-cyan-600/10 dark:to-transparent backdrop-blur-xl p-5 rounded-2xl border border-blue-200/50 dark:border-blue-500/20 shadow-lg shadow-blue-500/5 hover:shadow-blue-500/15 hover:-translate-y-1 transition-all duration-300">
+              <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 dark:bg-blue-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <p class="text-xs font-bold text-slate-400 dark:text-blue-300 uppercase tracking-wider">Total Warga Terdaftar</p>
+              <h3 id="kpiTotalWarga" class="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">0</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Data Siklus Hidup</p>
+            </div>
+
+            <div class="group relative overflow-hidden bg-gradient-to-br from-rose-500/10 via-red-500/5 to-transparent dark:from-rose-600/20 dark:via-rose-600/10 dark:to-transparent backdrop-blur-xl p-5 rounded-2xl border border-rose-200/50 dark:border-rose-500/20 shadow-lg shadow-rose-500/5 hover:shadow-rose-500/15 hover:-translate-y-1 transition-all duration-300">
+              <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-500/10 dark:bg-rose-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <p class="text-xs font-bold text-slate-400 dark:text-rose-300 uppercase tracking-wider">Indikasi Stunting / Gizi Kurang</p>
+              <h3 id="kpiStunting" class="text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-1">0</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Perlu Intervensi Khusus</p>
+            </div>
+
+            <div class="group relative overflow-hidden bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-transparent dark:from-orange-600/20 dark:via-amber-600/10 dark:to-transparent backdrop-blur-xl p-5 rounded-2xl border border-orange-200/50 dark:border-orange-500/20 shadow-lg shadow-orange-500/5 hover:shadow-orange-500/15 hover:-translate-y-1 transition-all duration-300">
+              <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-500/10 dark:bg-orange-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <p class="text-xs font-bold text-slate-400 dark:text-orange-300 uppercase tracking-wider">Rujukan Aktif Puskesos</p>
+              <h3 id="kpiRujukan" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400 mt-1">0</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Kasus Lintas Sektor</p>
+            </div>
+
+          </section>
+
+          <!-- KARTU 6 BIDANG SPM - DOUGHNUT CHART -->
+          <section class="space-y-4">
+            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+              <i class="fa-solid fa-layer-group text-emerald-500 dark:text-emerald-400"></i>
+              <span>Pencapaian 6 Bidang SPM Desa</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex justify-center items-center h-[300px]">
+                <canvas id="doughnutSpm"></canvas>
+              </div>
+              <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex flex-col justify-center">
+                <div id="doughnutLegend" class="space-y-4">
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- GRAFIK CAPAIAN SPM & TREN -->
+          <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <div class="lg:col-span-5 bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex flex-col justify-between">
+              <div>
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-bullseye text-emerald-500 dark:text-emerald-400"></i>
+                    <span>Capaian SPM Per Bidang Layanan</span>
+                  </h2>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Persentase ketercapaian pelayanan kesehatan standar dibanding target sasaran desa.</p>
+                
+                <div class="space-y-5" id="spmBars">
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-7 bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex flex-col">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+                  <i class="fa-solid fa-chart-area text-blue-500 dark:text-blue-400"></i>
+                  <span>Tren Kunjungan & Pemeriksaan Bulanan</span>
+                </h2>
+                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">Balita vs Ibu Hamil</span>
+              </div>
+              <div class="flex-1 min-h-[280px] relative">
+                <canvas id="trenChart"></canvas>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- GRAFIK TREN KESEHATAN VS NON-KESEHATAN -->
+          <section class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+                <i class="fa-solid fa-chart-bar text-indigo-500 dark:text-indigo-400"></i>
+                <span>Tren Aktivitas Layanan Posyandu (Kesehatan vs Non-Kesehatan)</span>
+              </h2>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="barChartSpm"></canvas>
+            </div>
+          </section>
+
+          <!-- TABEL DATA PEMERIKSAAN -->
+          <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+              <div class="p-5 border-b border-slate-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center space-x-2">
+                  <i class="fa-solid fa-child text-blue-500"></i>
+                  <span>Data Pemeriksaan Balita Terbaru</span>
+                  <span id="totalBalitaCount" class="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full ml-1">0</span>
+                </h3>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <i class="fa-regular fa-eye"></i>
+                    Tampilkan:
+                  </span>
+                  <select id="filterBalita" onchange="filterTableBalita()" 
+                          class="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-slate-700 dark:text-slate-200 font-medium">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="all">Semua</option>
+                  </select>
+                  <span class="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold px-2.5 py-1 rounded-full">Firebase</span>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100 dark:border-white/10 sticky top-0 z-10">
+                    <tr>
+                      <th class="p-3">#</th>
+                      <th class="p-3">Nama Bayi</th>
+                      <th class="p-3">Tanggal</th>
+                      <th class="p-3">TB/BB</th>
+                      <th class="p-3">Imunisasi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bodyTabelBalita" class="divide-y divide-slate-100 dark:divide-white/5">
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/30 dark:bg-slate-800/30 flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+                <span id="balitaInfo">Menampilkan 0 dari 0 data</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="prevPageBalita()" id="prevBalita" class="px-3 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-chevron-left"></i>
+                  </button>
+                  <span id="balitaPageInfo" class="font-medium">Halaman 1</span>
+                  <button onclick="nextPageBalita()" id="nextBalita" class="px-3 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+              <div class="p-5 border-b border-slate-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center space-x-2">
+                  <i class="fa-solid fa-person-pregnant text-rose-500"></i>
+                  <span>Data Pemeriksaan Ibu Hamil Terbaru</span>
+                  <span id="totalBumilCount" class="text-[10px] bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-semibold px-2 py-0.5 rounded-full ml-1">0</span>
+                </h3>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <i class="fa-regular fa-eye"></i>
+                    Tampilkan:
+                  </span>
+                  <select id="filterBumil" onchange="filterTableBumil()" 
+                          class="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-rose-400 outline-none transition-all text-slate-700 dark:text-slate-200 font-medium">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="all">Semua</option>
+                  </select>
+                  <span class="text-xs bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-semibold px-2.5 py-1 rounded-full">Firebase</span>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100 dark:border-white/10 sticky top-0 z-10">
+                    <tr>
+                      <th class="p-3">#</th>
+                      <th class="p-3">Nama Ibu</th>
+                      <th class="p-3">Tanggal</th>
+                      <th class="p-3">TD (Sistol/Diastol)</th>
+                      <th class="p-3">K-Ke</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bodyTabelBumil" class="divide-y divide-slate-100 dark:divide-white/5">
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/30 dark:bg-slate-800/30 flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+                <span id="bumilInfo">Menampilkan 0 dari 0 data</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="prevPageBumil()" id="prevBumil" class="px-3 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-chevron-left"></i>
+                  </button>
+                  <span id="bumilPageInfo" class="font-medium">Halaman 1</span>
+                  <button onclick="nextPageBumil()" id="nextBumil" class="px-3 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- TABEL LAYANAN NON-KESEHATAN -->
+          <section class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 dark:border-white/10 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+              <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center space-x-2">
+                <i class="fa-solid fa-clipboard-list text-emerald-600 dark:text-emerald-400"></i>
+                <span>Daftar Pengaduan & Aspirasi SPM Non-Kesehatan Terbaru</span>
+              </h3>
+              <span class="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold px-2.5 py-1 rounded-full">Firebase</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100 dark:border-white/10">
+                  <tr>
+                    <th class="p-3">Tanggal</th>
+                    <th class="p-3">Nama Warga</th>
+                    <th class="p-3">Bidang SPM</th>
+                    <th class="p-3">Keluhan / Kebutuhan</th>
+                    <th class="p-3">Status Tindak Lanjut</th>
+                  </tr>
+                </thead>
+                <tbody id="bodyTabelNonKesehatan" class="divide-y divide-slate-100 dark:divide-white/5">
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- VIEW TAB 2: MAPS -->
+        <div id="viewMap" class="hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-4 space-y-4">
+              <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl space-y-4">
+                <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center space-x-2">
+                  <i class="fa-solid fa-filter text-emerald-500 dark:text-emerald-400"></i>
+                  <span>Filter Marker Sebaran</span>
+                </h3>
+                
+                <div class="space-y-3 text-xs">
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="chkStunting" checked onchange="renderMarkers()" class="w-4 h-4 text-rose-600 rounded">
+                    <span class="font-bold text-rose-600 dark:text-rose-400 flex items-center"><i class="fa-solid fa-child me-2"></i> Balita Stunting</span>
+                  </label>
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="chkSpmBumil" checked onchange="renderMarkers()" class="w-4 h-4 text-amber-500 rounded">
+                    <span class="font-bold text-amber-600 dark:text-amber-400 flex items-center"><i class="fa-solid fa-person-pregnant me-2"></i> SPM Bumil Belum K4</span>
+                  </label>
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="chkSpmImunisasi" checked onchange="renderMarkers()" class="w-4 h-4 text-blue-500 rounded">
+                    <span class="font-bold text-blue-600 dark:text-blue-400 flex items-center"><i class="fa-solid fa-syringe me-2"></i> SPM Imunisasi Rendah</span>
+                  </label>
+                </div>
+
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-slate-500 dark:text-slate-400 text-[11px] border border-slate-200/80 dark:border-white/5">
+                  <i class="fa-solid fa-info-circle text-blue-500 dark:text-blue-400 me-1"></i> Klik titik penanda di peta untuk melihat detail sasaran intervensi.
+                </div>
+              </div>
+
+              <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl">
+                <h4 class="font-bold text-slate-800 dark:text-white text-xs uppercase mb-3 tracking-wider">Keterangan Risiko SPM Wilayah</h4>
+                <ul class="text-xs space-y-2 text-slate-600 dark:text-slate-300">
+                  <li class="flex justify-between items-center">
+                    <span>Tot. Kasus Stunting:</span>
+                    <span class="font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-2 py-0.5 rounded-full" id="totalStunting">0 Sasaran</span>
+                  </li>
+                  <li class="flex justify-between items-center">
+                    <span>Bumil Resiko / Kurang K4:</span>
+                    <span class="font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full" id="totalBumilRisiko">0 Sasaran</span>
+                  </li>
+                  <li class="flex justify-between items-center">
+                    <span>Imunisasi Drop Out:</span>
+                    <span class="font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full" id="totalImunisasiDO">0 Sasaran</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="lg:col-span-8 bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-3 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl">
+              <div id="map"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW TAB 3: LAPORAN -->
+        <div id="viewReport" class="hidden space-y-6">
+          <div class="flex justify-between items-center bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-4 rounded-2xl border border-slate-200 dark:border-white/10 no-print">
+            <div>
+              <h3 class="font-bold text-slate-800 dark:text-white text-sm">Pratinjau Laporan Bulanan Posyandu (SIP)</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Format standar terintegrasi siap dicetak untuk Puskesmas & Desa.</p>
+            </div>
+            <button onclick="cetakLaporan()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center space-x-2">
+              <i class="fa-solid fa-print"></i><span>Cetak / Simpan PDF</span>
+            </button>
+          </div>
+
+          <div id="printArea" class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl text-slate-800 dark:text-slate-100 space-y-6">
+            <div class="text-center border-b pb-4 border-slate-300 dark:border-white/10">
+              <h2 class="text-lg font-black uppercase text-slate-900 dark:text-white tracking-wide">LAPORAN BULANAN POSYANDU (SIP)</h2>
+              <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300" id="reportPosyandu">POSYANDU: MELATI I | DESA: KALIGIRI</h4>
+              <p class="text-xs text-slate-500 dark:text-slate-400" id="reportPeriode">Tahun: 2026 | Wilayah Kerja Puskesmas Pembina</p>
+            </div>
+
+            <div>
+              <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 border-l-4 border-emerald-500 pl-2">I. Data Pemantauan Pertumbuhan Balita (SKDN)</h4>
+              <table class="w-full text-xs border border-slate-300 dark:border-white/10 text-left">
+                <thead class="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-white/10">
+                  <tr>
+                    <th class="p-2 border-r border-slate-300 dark:border-white/10">Indikator SKDN</th>
+                    <th class="p-2 text-center border-r border-slate-300 dark:border-white/10">0-5 Bln</th>
+                    <th class="p-2 text-center border-r border-slate-300 dark:border-white/10">6-23 Bln</th>
+                    <th class="p-2 text-center border-r border-slate-300 dark:border-white/10">24-59 Bln</th>
+                    <th class="p-2 text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-300 dark:divide-white/10" id="reportSKDN">
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10 font-medium">S (Jumlah Balita Ada)</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center font-bold">0</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10 font-medium">K (Punya KMS/KBL)</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center font-bold">0</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10 font-medium">D (Ditimbang)</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center font-bold">0</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10 font-medium">N (Naik Berat Badan)</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center font-bold">0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 border-l-4 border-rose-500 pl-2">II. Capaian SPM & Ringkasan Stunting</h4>
+              <table class="w-full text-xs border border-slate-300 dark:border-white/10 text-left">
+                <thead class="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-white/10">
+                  <tr>
+                    <th class="p-2 border-r border-slate-300 dark:border-white/10">Indikator SPM Layanan</th>
+                    <th class="p-2 text-center border-r border-slate-300 dark:border-white/10">Sasaran Target</th>
+                    <th class="p-2 text-center border-r border-slate-300 dark:border-white/10">Capaian Riil</th>
+                    <th class="p-2 text-center">Status SPM</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-300 dark:divide-white/10" id="reportSPM">
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10">Pelayanan Kesehatan Ibu Hamil (ANC)</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center font-semibold text-amber-600 dark:text-amber-400">Belum Capai (0%)</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10">Pelayanan Balita Timbang & Nutrisi</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0</td>
+                    <td class="p-2 text-center font-semibold text-emerald-600 dark:text-emerald-400">Tercapai (0%)</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2 border-r border-slate-300 dark:border-white/10">Kasus Balita Stunting (Sangat Pendek)</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0 Target</td>
+                    <td class="p-2 text-center border-r border-slate-300 dark:border-white/10">0 Anak</td>
+                    <td class="p-2 text-center font-semibold text-rose-600 dark:text-rose-400">Intervensi Khusus</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pt-8 grid grid-cols-2 text-center text-xs">
+              <div>
+                <p class="mb-12">Mengetahui,<br><strong>Ketua Kader Posyandu</strong></p>
+                <p class="font-bold text-slate-800 dark:text-white">( ............................................ )</p>
+              </div>
+              <div>
+                <p class="mb-12">Menyetujui,<br><strong>Bidan Desa / Pembina SPM</strong></p>
+                <p class="font-bold text-slate-800 dark:text-white">( ............................................ )</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- VIEW TAB 4: SPM DIGITAL -->
+        <div id="viewSpmDigital" class="hidden space-y-6">
+          
+          <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Total Warga Terdaftar</p>
+                <h3 id="statTotalWarga" class="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1">0</h3>
+              </div>
+              <div class="bg-teal-50 dark:bg-teal-900/30 p-3 rounded-full text-teal-600 dark:text-teal-400 text-xl">👥</div>
+            </div>
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Indikasi Stunting / Gizi Kurang</p>
+                <h3 id="statStunting" class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">0</h3>
+              </div>
+              <div class="bg-red-50 dark:bg-red-900/30 p-3 rounded-full text-red-600 dark:text-red-400 text-xl">⚠️</div>
+            </div>
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Rujukan Aktif Puskesos</p>
+                <h3 id="statRujukan" class="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">0</h3>
+              </div>
+              <div class="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-full text-orange-600 dark:text-orange-400 text-xl">🚨</div>
+            </div>
+          </section>
+
+          <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <h3 class="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3">📈 Distribusi Status Gizi & KIA</h3>
+              <div class="relative h-64 flex justify-center items-center">
+                <canvas id="chartGizi"></canvas>
+              </div>
+            </div>
+            <div class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <h3 class="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3">📊 Pemenuhan Aspek 6 SPM (Tidak / Belum Terpenuhi)</h3>
+              <div class="relative h-64 flex justify-center items-center">
+                <canvas id="chartSpm"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  
+            <!-- FORM 1: DATA WARGA -->
+            <section class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-200 dark:border-white/10">
+                <div class="p-2.5 bg-teal-100 dark:bg-teal-900/30 rounded-xl">
+                  <i class="fa-solid fa-user-plus text-teal-600 dark:text-teal-400 text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-slate-800 dark:text-white">Registrasi Siklus Hidup</h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Input data warga baru untuk layanan terintegrasi</p>
+                </div>
+              </div>
+
+              <form id="formWarga" onsubmit="submitWarga(event)" class="space-y-4">
+                <div class="group">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <i class="fa-regular fa-id-card mr-1.5 text-teal-500"></i>NIK <span class="text-rose-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <input type="text" id="warga_nik" required 
+                           class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                           placeholder="Masukkan 16 digit NIK">
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <span class="text-xs text-slate-400 dark:text-slate-500">16 digit</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <i class="fa-regular fa-user mr-1.5 text-teal-500"></i>Nama Lengkap <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="warga_nama" required 
+                         class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                         placeholder="Nama lengkap sesuai KTP">
+                </div>
+
+                <div class="group">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <i class="fa-regular fa-calendar mr-1.5 text-teal-500"></i>Tanggal Lahir <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="date" id="warga_tgl" required 
+                         class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100">
+                </div>
+
+                <div class="group">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <i class="fa-solid fa-location-dot mr-1.5 text-teal-500"></i>Alamat Rumah <span class="text-rose-500">*</span>
+                  </label>
+                  <textarea id="warga_alamat" required rows="2"
+                            class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
+                            placeholder="Alamat lengkap (RT/RW, Desa, Kecamatan)"></textarea>
+                </div>
+
+                <div class="group">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <i class="fa-solid fa-phone mr-1.5 text-teal-500"></i>No. HP Aktif <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="warga_hp" required 
+                         class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                         placeholder="08123456789">
+                </div>
+
+                <button type="submit" id="btnWarga" 
+                        class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 flex justify-center items-center gap-2 text-sm">
+                  <i class="fa-solid fa-user-plus"></i>
+                  <span>Daftarkan Anggota</span>
+                  <i class="fa-solid fa-arrow-right text-xs opacity-70"></i>
+                </button>
+              </form>
+            </section>
+
+            <!-- FORM 2: PENCATATAN MULTISEKTORAL -->
+            <section class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-200 dark:border-white/10">
+                <div class="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                  <i class="fa-solid fa-clipboard-list text-blue-600 dark:text-blue-400 text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-slate-800 dark:text-white">Input Layanan Multisektoral</h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Catat layanan kesehatan & 6 SPM terintegrasi</p>
+                </div>
+              </div>
+
+              <form id="formLayanan" onsubmit="submitLayanan(event)" class="space-y-4">
+                <div class="group">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <i class="fa-regular fa-address-card mr-1.5 text-blue-500"></i>Pilih Warga Terdaftar <span class="text-rose-500">*</span>
+                  </label>
+                  <select id="layanan_nik" required 
+                          class="w-full px-4 py-3 bg-yellow-50/80 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800/50 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100">
+                    <option value="" class="text-slate-400">-- Pilih NIK & Nama Warga --</option>
+                  </select>
+                  <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    <i class="fa-regular fa-circle-info"></i> Pastikan warga sudah terdaftar di formulir sebelumnya
+                  </p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                  <div class="group">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      <i class="fa-solid fa-weight-scale mr-1 text-blue-500"></i>Berat Badan
+                    </label>
+                    <input type="number" step="0.1" id="layanan_bb" 
+                           class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                           placeholder="0.0 Kg">
+                  </div>
+                  <div class="group">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      <i class="fa-solid fa-ruler-vertical mr-1 text-blue-500"></i>Tinggi Badan
+                    </label>
+                    <input type="number" step="0.1" id="layanan_tb" 
+                           class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                           placeholder="0.0 Cm">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="group">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      <i class="fa-solid fa-heart-pulse mr-1 text-blue-500"></i>Status Gizi
+                    </label>
+                    <select id="layanan_gizi" 
+                            class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100">
+                      <option value="Baik" class="text-emerald-600">✅ Gizi Baik</option>
+                      <option value="Kurang" class="text-yellow-600">⚠️ Gizi Kurang</option>
+                      <option value="Gizi Buruk" class="text-orange-600">🔶 Gizi Buruk / Kronis</option>
+                      <option value="Stunting" class="text-rose-600">🔴 Indikasi Stunting</option>
+                    </select>
+                  </div>
+                  <div class="group">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      <i class="fa-solid fa-syringe mr-1 text-blue-500"></i>Status Imunisasi
+                    </label>
+                    <select id="layanan_imunisasi" 
+                            class="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all duration-200 text-sm text-slate-800 dark:text-slate-100">
+                      <option value="Lengkap" class="text-emerald-600">✅ Lengkap Sesuai Usia</option>
+                      <option value="Belum Lengkap" class="text-yellow-600">⚠️ Belum Lengkap</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="border-t border-slate-200 dark:border-white/10 pt-4 space-y-2.5">
+                  <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                    <i class="fa-solid fa-layer-group mr-1.5 text-indigo-500"></i>Aspek Pendidikan, Sosial & Infrastruktur (6 SPM)
+                  </label>
+                  
+                  <div class="flex justify-between items-center text-sm bg-slate-50/80 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                    <span class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                      <i class="fa-solid fa-graduation-cap text-indigo-400 text-xs w-5"></i>
+                      Anak usia dini mengakses PAUD?
+                    </span>
+                    <div class="flex gap-1 bg-white dark:bg-slate-700 rounded-lg p-0.5">
+                      <select id="layanan_paud" class="px-3 py-1.5 bg-transparent border-0 focus:ring-0 text-sm font-medium text-slate-700 dark:text-slate-200">
+                        <option value="Ya" class="text-emerald-600">✅ Ya</option>
+                        <option value="Tidak" class="text-rose-600">❌ Tidak</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-between items-center text-sm bg-slate-50/80 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                    <span class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                      <i class="fa-solid fa-house-chimney text-indigo-400 text-xs w-5"></i>
+                      Kondisi Rumah Layak Huni?
+                    </span>
+                    <div class="flex gap-1 bg-white dark:bg-slate-700 rounded-lg p-0.5">
+                      <select id="layanan_rumah" class="px-3 py-1.5 bg-transparent border-0 focus:ring-0 text-sm font-medium text-slate-700 dark:text-slate-200">
+                        <option value="Ya" class="text-emerald-600">✅ Ya</option>
+                        <option value="Tidak" class="text-rose-600">❌ Tidak</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-between items-center text-sm bg-slate-50/80 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                    <span class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                      <i class="fa-solid fa-droplet text-indigo-400 text-xs w-5"></i>
+                      Memiliki Akses Air Bersih Sesuai?
+                    </span>
+                    <div class="flex gap-1 bg-white dark:bg-slate-700 rounded-lg p-0.5">
+                      <select id="layanan_air" class="px-3 py-1.5 bg-transparent border-0 focus:ring-0 text-sm font-medium text-slate-700 dark:text-slate-200">
+                        <option value="Ya" class="text-emerald-600">✅ Ya</option>
+                        <option value="Tidak" class="text-rose-600">❌ Tidak</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-between items-center text-sm bg-slate-50/80 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                    <span class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                      <i class="fa-solid fa-hand-holding-heart text-indigo-400 text-xs w-5"></i>
+                      Menerima Program Bansos Darurat?
+                    </span>
+                    <div class="flex gap-1 bg-white dark:bg-slate-700 rounded-lg p-0.5">
+                      <select id="layanan_bansos" class="px-3 py-1.5 bg-transparent border-0 focus:ring-0 text-sm font-medium text-slate-700 dark:text-slate-200">
+                        <option value="Ya" class="text-emerald-600">✅ Ya</option>
+                        <option value="Tidak" class="text-rose-600">❌ Tidak</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" id="btnLayanan" 
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 flex justify-center items-center gap-2 text-sm">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span>Simpan Layanan & Evaluasi</span>
+                  <i class="fa-solid fa-arrow-right text-xs opacity-70"></i>
+                </button>
+              </form>
+            </section>
+          </div>
+
+          <!-- DASHBOARD PANEL RUJUKAN -->
+          <section class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg p-6 rounded-xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+              <h2 class="text-xl font-semibold text-orange-700 dark:text-orange-400 flex items-center gap-2">🚨 Panel Rujukan Cepat Lintas Sektor (Puskesos Dashboard)</h2>
+              <div class="flex items-center gap-2 w-full md:w-auto">
+                <input type="text" id="searchInput" placeholder="Cari NIK / Kasus..." onkeyup="filterTabelRujukan()" class="form-input text-sm w-full md:w-64">
+                <button onclick="muatDashboardSpm()" class="bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-400 text-xs px-3 py-2 rounded-lg font-medium transition whitespace-nowrap">🔄 Refresh</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="bg-orange-50 dark:bg-orange-900/20 border-b border-orange-100 dark:border-orange-800/30 text-slate-600 dark:text-slate-400 font-semibold">
+                    <th class="p-3">ID</th>
+                    <th class="p-3">NIK</th>
+                    <th class="p-3">Sektor Tujuan</th>
+                    <th class="p-3">Detail Keluhan / Kasus</th>
+                    <th class="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="tabelRujukan">
+                  <tr>
+                    <td colspan="5" class="p-4 text-center text-slate-400 dark:text-slate-500">Memuat rujukan darurat aktif...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white/80 dark:bg-slate-900/60 backdrop-blur-lg border-t border-slate-200 dark:border-white/10 mt-auto py-4 text-center text-xs text-slate-400 dark:text-slate-500 no-print">
+      Dashboard Digital ePosyandu Kecamatan Sirampog &copy; 2026 - Terintegrasi 6 SPM Digital - Powered by Firebase & Tailwind CSS
+    </footer>
+  </div>
+
+  <!-- ============================================================ -->
+  <!--                      JAVASCRIPT                                -->
+  <!-- ============================================================ -->
+  <script>
+    // ===================== FIREBASE CONFIGURATION =====================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqLcw3xKnZvNGxKSJqwsaiNS7CA--5ABw",
+      authDomain: "eposyandu-sirampog.firebaseapp.com",
+      projectId: "eposyandu-sirampog",
+      storageBucket: "eposyandu-sirampog.firebasestorage.app",
+      messagingSenderId: "1017808893287",
+      appId: "1:1017808893287:web:917604708e7673dc342bc2",
+      measurementId: "G-419Z7QZHS3"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Aktifkan offline persistence
+    firebase.firestore().enablePersistence()
+      .catch((err) => {
+        console.warn('Firebase persistence error:', err);
+      });
+
+    // ===================== AUTH APP =====================
+    function authApp() {
+      return {
+        activeTab: 'login',
+        loading: false,
+        forgotEmail: '',
+        redirectUrl: window.location.href.split('?')[0],
+        loginForm: { username: '', password: '' },
+        regForm: { firstName: '', lastName: '', username: '', phone: '', email: '', posyandu: '', password: '' },
+        listPosyandu: ['POSYANDU DK.SLADA', 'POSYANDU LAGARAN', 'POSYANDU MAWAR'],
+
+        init() {
+          this.checkSession();
+          this.fetchPosyanduList();
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          });
+        },
+
+        async fetchPosyanduList() {
+          try {
+            const snapshot = await db.collection('Posyandu').get();
+            const list = [];
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              list.push(data.nama_posyandu || data.name || data.nama || doc.id);
+            });
+            if (list.length > 0) this.listPosyandu = list;
+          } catch (error) {
+            console.error('Error fetching posyandu:', error);
+          }
+        },
+
+        switchTab(tab) {
+          this.activeTab = tab;
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          });
+        },
+
+        checkSession() {
+          const sessionData = localStorage.getItem('userSession');
+          
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              const now = new Date().getTime();
+
+              if (now < session.expiresAt) {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('dashboardPage').classList.remove('hidden');
+                if (typeof loadData === 'function') loadData();
+                return;
+              } else {
+                localStorage.removeItem('userSession');
+                this.showSessionExpiredAlert();
+              }
+            } catch (e) {
+              localStorage.removeItem('userSession');
+            }
+          }
+          document.getElementById('loginPage').style.display = 'flex';
+          document.getElementById('dashboardPage').classList.add('hidden');
+        },
+
+        showSessionExpiredAlert() {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Sesi Berakhir',
+            text: 'Sesi login Anda telah habis (2 jam). Silakan login kembali.',
+            confirmButtonColor: '#4f46e5',
+            background: '#0f172a',
+            color: '#fff'
+          });
+        },
+
+        async handleLogin() {
+          this.loading = true;
+          
+          try {
+            // Cari user di Firestore
+            const usersRef = db.collection('Users');
+            const snapshot = await usersRef
+              .where('username', '==', this.loginForm.username)
+              .get();
+
+            let user = null;
+            let userDocId = null;
+
+            if (snapshot.empty) {
+              // Coba cari berdasarkan email
+              const emailSnapshot = await usersRef
+                .where('email', '==', this.loginForm.username)
+                .get();
+              
+              if (emailSnapshot.empty) {
+                this.loading = false;
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Akses Ditolak',
+                  text: 'Username atau password salah.',
+                  confirmButtonColor: '#4f46e5',
+                  background: '#0f172a',
+                  color: '#fff'
+                });
+                return;
+              }
+              
+              emailSnapshot.forEach(doc => {
+                user = doc.data();
+                userDocId = doc.id;
+              });
+            } else {
+              snapshot.forEach(doc => {
+                user = doc.data();
+                userDocId = doc.id;
+              });
+            }
+
+            // Verifikasi password (sederhana - untuk produksi gunakan hashing)
+            if (user && user.password === this.loginForm.password) {
+              // Cek status active
+              if (user.active === 0) {
+                this.loading = false;
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'Akun Tidak Aktif',
+                  text: 'Akun Anda belum diaktifkan oleh admin. Silakan hubungi administrator.',
+                  confirmButtonColor: '#4f46e5',
+                  background: '#0f172a',
+                  color: '#fff'
+                });
+                return;
+              }
+
+              const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+              const sessionPayload = {
+                user: {
+                  username: user.username,
+                  firstName: user.first_name || user.firstName || '',
+                  lastName: user.last_name || user.lastName || '',
+                  email: user.email,
+                  role: user.role || 'USER_POSYANDU',
+                  posyandu: user.posyandu || '-'
+                },
+                loginAt: new Date().getTime(),
+                expiresAt: new Date().getTime() + TWO_HOURS_IN_MS
+              };
+              localStorage.setItem('userSession', JSON.stringify(sessionPayload));
+
+              this.loading = false;
+              Swal.fire({
+                icon: 'success',
+                title: 'Login Berhasil!',
+                text: 'Selamat datang ' + (user.first_name || user.firstName || user.username),
+                timer: 1500,
+                showConfirmButton: false,
+                background: '#0f172a',
+                color: '#fff'
+              }).then(() => {
+                location.reload();
+              });
+            } else {
+              this.loading = false;
+              Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Username atau password salah.',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a',
+                color: '#fff'
+              });
+            }
+          } catch (error) {
+            this.loading = false;
+            console.error('Login error:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Gagal terhubung ke server. Silakan coba lagi.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a',
+              color: '#fff'
+            });
+          }
+        },
+
+        async handleRegister() {
+          this.loading = true;
+
+          try {
+            // Cek username sudah ada
+            const checkSnapshot = await db.collection('Users')
+              .where('username', '==', this.regForm.username)
+              .get();
+
+            if (!checkSnapshot.empty) {
+              this.loading = false;
+              Swal.fire({
+                icon: 'warning',
+                title: 'Pendaftaran Gagal',
+                text: 'Username sudah digunakan. Silakan pilih username lain.',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a',
+                color: '#fff'
+              });
+              return;
+            }
+
+            // Simpan user baru dengan status active = 0 (perlu aktivasi admin)
+            await db.collection('Users').add({
+              username: this.regForm.username,
+              password: this.regForm.password,
+              first_name: this.regForm.firstName,
+              last_name: this.regForm.lastName,
+              email: this.regForm.email,
+              phone: this.regForm.phone,
+              posyandu: this.regForm.posyandu || '-',
+              role: 'USER_POSYANDU',
+              active: 0,
+              created_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            this.loading = false;
+            Swal.fire({
+              icon: 'success',
+              title: 'Pendaftaran Berhasil!',
+              text: 'Akun Anda telah terdaftar. Silakan tunggu aktivasi dari admin.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a',
+              color: '#fff'
+            }).then(() => {
+              this.regForm = { firstName: '', lastName: '', username: '', phone: '', email: '', posyandu: '', password: '' };
+              this.switchTab('login');
+            });
+          } catch (error) {
+            this.loading = false;
+            console.error('Register error:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Gagal mendaftar akun. Silakan coba lagi.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a',
+              color: '#fff'
+            });
+          }
+        },
+
+        async handleForgot() {
+          if (!this.forgotEmail) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Email Kosong',
+              text: 'Silakan masukkan alamat email Anda.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a',
+              color: '#fff'
+            });
+            return;
+          }
+
+          this.loading = true;
+
+          try {
+            const snapshot = await db.collection('Users')
+              .where('email', '==', this.forgotEmail)
+              .get();
+
+            if (snapshot.empty) {
+              this.loading = false;
+              Swal.fire({
+                icon: 'error',
+                title: 'Email Tidak Ditemukan',
+                text: 'Email yang Anda masukkan tidak terdaftar.',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a',
+                color: '#fff'
+              });
+              return;
+            }
+
+            // Kirim reset password (simulasi - untuk produksi gunakan Firebase Auth)
+            this.loading = false;
+            Swal.fire({
+              icon: 'success',
+              title: 'Email Terkirim!',
+              text: 'Instruksi reset password telah dikirim ke email Anda.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a',
+              color: '#fff'
+            }).then(() => {
+              this.forgotEmail = '';
+              this.switchTab('login');
+            });
+          } catch (error) {
+            this.loading = false;
+            console.error('Forgot password error:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Gagal memproses permintaan. Silakan coba lagi.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a',
+              color: '#fff'
+            });
+          }
+        }
+      }
+    }
+
+    // ================================================================
+    // 2. LOGOUT FUNCTION
+    // ================================================================
+    function handleLogout() {
+      Swal.fire({
+        title: 'Konfirmasi Logout',
+        text: 'Apakah Anda yakin ingin keluar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Logout',
+        cancelButtonText: 'Batal',
+        background: '#0f172a',
+        color: '#fff'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.removeItem('userSession');
+          window.location.href = "index.html";
+        }
+      });
+    }
+
+    // ================================================================
+    // 3. DASHBOARD FUNCTIONS
+    // ================================================================
+    let trenChartInstance = null;
+    let barChartInstance = null;
+    let doughnutChartInstance = null;
+    let mapInstance = null;
+    let markersGroup = null;
+
+    let chartGiziInstance = null;
+    let chartSpmInstance = null;
+    let cacheRujukan = [];
+
+    // ===================== THEME TOGGLE =====================
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+      refreshCharts();
+    }
+
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+
+    function refreshCharts() {
+      if (trenChartInstance) {
+        const data = trenChartInstance.data;
+        trenChartInstance.destroy();
+        if (window._trenData) renderLineChart(window._trenData);
+      }
+      if (barChartInstance) {
+        const data = barChartInstance.data;
+        barChartInstance.destroy();
+        if (window._barData) renderBarChart(window._barData);
+      }
+      if (doughnutChartInstance) {
+        doughnutChartInstance.destroy();
+        if (window._spm6Data) renderDoughnutChart(window._spm6Data);
+      }
+    }
+
+    // ===================== LOAD DATA =====================
+    async function loadData() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('content').classList.add('hidden');
+      document.getElementById('refreshIcon').classList.add('animate-spin');
+
+      try {
+        const data = await fetchFirestoreData();
+        renderDashboard(data);
+        muatDashboardSpm();
+        cekUsersInactive();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Terjadi kesalahan: ${error.message}</p>`;
+      }
+    }
+
+    // ===================== FETCH FIRESTORE DATA =====================
+    async function fetchFirestoreData() {
+      try {
+        // Ambil data dari semua collection
+        const [periksaBalitaSnapshot, periksaBumilSnapshot, profilBalitaSnapshot, profilBumilSnapshot, posyanduSnapshot] = await Promise.all([
+          db.collection('Periksa_balita').orderBy('tgl_periksa', 'desc').limit(100).get(),
+          db.collection('Periksa_bumil').orderBy('tgl_periksa', 'desc').limit(100).get(),
+          db.collection('Profil_balita').get(),
+          db.collection('Profil_bumil').get(),
+          db.collection('Posyandu').get()
+        ]);
+
+        const periksaBalita = [];
+        periksaBalitaSnapshot.forEach(doc => {
+          periksaBalita.push({ id: doc.id, ...doc.data() });
+        });
+
+        const periksaBumil = [];
+        periksaBumilSnapshot.forEach(doc => {
+          periksaBumil.push({ id: doc.id, ...doc.data() });
+        });
+
+        const profilBalita = [];
+        profilBalitaSnapshot.forEach(doc => {
+          profilBalita.push({ id: doc.id, ...doc.data() });
+        });
+
+        const profilBumil = [];
+        profilBumilSnapshot.forEach(doc => {
+          profilBumil.push({ id: doc.id, ...doc.data() });
+        });
+
+        const posyanduList = [];
+        posyanduSnapshot.forEach(doc => {
+          posyanduList.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Hitung statistik
+        const totalBalita = profilBalita.length;
+        const totalBumil = profilBumil.length;
+        const totalPeriksaBalita = periksaBalita.length;
+        const totalPeriksaBumil = periksaBumil.length;
+        const totalPosyandu = posyanduList.length;
+
+        const targetBumil = 10;
+        const targetBalita = 70;
+        const capaianBumil = Math.min(totalPeriksaBumil, targetBumil);
+        const capaianBalita = Math.min(totalPeriksaBalita, targetBalita);
+
+        // Hitung stunting dari data balita (simulasi)
+        const stuntingCount = Math.max(0, Math.round(totalBalita * 0.08));
+
+        return {
+          kpi: { 
+            spmAvg: Math.round(((capaianBumil/targetBumil + capaianBalita/targetBalita) / 2) * 100) || 0, 
+            totalKesehatan: totalPeriksaBalita + totalPeriksaBumil, 
+            totalNonKesehatan: 0, 
+            totalPosyandu: totalPosyandu,
+            totalWarga: totalBalita + totalBumil,
+            stunting: stuntingCount,
+            rujukan: 2
+          },
+          spm6: {
+            kesehatan: { pct: Math.min(100, Math.round((totalPeriksaBalita / Math.max(1, targetBalita)) * 75 + 20)), detail: "Pelayanan bumil & balita" },
+            pendidikan: { pct: 45, detail: "PAUD & BKB Posyandu" },
+            pu: { pct: 30, detail: "Akses Air Bersih & Sanitasi" },
+            perumahan: { pct: 55, detail: "RTLH & Rumah Sehat" },
+            trantib: { pct: 20, detail: "Ketertiban Lingkungan" },
+            sosial: { pct: 65, detail: "Bantuan Sosial & PKH" }
+          },
+          spm: {
+            bumil: { capaian: capaianBumil, target: targetBumil, pct: Math.round((capaianBumil/targetBumil) * 100) || 0 },
+            bulin: { capaian: 0, target: 0, pct: 0 },
+            bayi: { capaian: 0, target: 0, pct: 0 },
+            balita: { capaian: capaianBalita, target: targetBalita, pct: Math.round((capaianBalita/targetBalita) * 100) || 0 }
+          },
+          tren: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+            balita: Array(12).fill(0).map((_, i) => i === 7 ? totalPeriksaBalita : 0),
+            bumil: Array(12).fill(0).map((_, i) => i === 7 ? totalPeriksaBumil : 0),
+            kesehatan: Array(12).fill(0).map((_, i) => i === 7 ? totalPeriksaBalita + totalPeriksaBumil : 0),
+            nonKesehatan: Array(12).fill(0)
+          },
+          tabelBalita: periksaBalita.map(item => ({
+            nama_bayi: item.nama_bayi || item.nama || '-',
+            tgl_periksa: item.tgl_periksa || item.tanggal_periksa || '-',
+            tb: item.tb || item.tinggi_badan || '0',
+            bb: item.bb || item.berat_badan || '0',
+            jenis_imunisasi: item.jenis_imunisasi || item.imunisasi || 'Rutin'
+          })),
+          tabelBumil: periksaBumil.map(item => ({
+            nama_ibu: item.nama_bumil || item.nama_ibu || '-',
+            tgl_periksa: item.tgl_periksa || item.tanggal_periksa || '-',
+            sistol: item.sistol || item.sistole || '0',
+            distol: item.distol || item.diastol || '0',
+            k_ke: item.k_ke || item.kunjungan_ke || '1'
+          })),
+          tabelNonKesehatan: [],
+          posyandu: posyanduList,
+          profilBalita: profilBalita,
+          profilBumil: profilBumil,
+          stuntingCount: stuntingCount
+        };
+      } catch (error) {
+        console.error('Error fetching Firestore data:', error);
+        throw error;
+      }
+    }
+
+	// ===================== CEK USERS INACTIVE =====================
+	let inactiveUsersData = [];
+	let currentUserRole = '';
+
+	async function cekUsersInactive() {
+	  const sessionData = localStorage.getItem('userSession');
+	  if (sessionData) {
+		try {
+		  const session = JSON.parse(sessionData);
+		  currentUserRole = session.user?.role || '';
+		} catch (e) {
+		  currentUserRole = '';
+		}
+	  }
+
+	  // ✅ PERBAIKAN: Izinkan untuk SUPER_ADMIN dan ADMIN_DESA
+	  const allowedRoles = ['SUPER_ADMIN', 'ADMIN_DESA'];
+	  if (!allowedRoles.includes(currentUserRole)) {
+		const container = document.getElementById('inactiveUsersContainer');
+		if (container) {
+		  container.style.display = 'none';
+		}
+		return;
+	  }
+
+	  try {
+		const snapshot = await db.collection('Users')
+		  .where('active', '==', 0)
+		  .get();
+		
+		const users = [];
+		snapshot.forEach(doc => {
+		  const data = doc.data();
+		  
+		  // Untuk ADMIN_DESA: hanya tampilkan user dengan desa yang sama
+		  if (currentUserRole === 'ADMIN_DESA') {
+			const userDesa = sessionData ? JSON.parse(sessionData).user?.desa : '';
+			if (data.desa !== userDesa) {
+			  return; // Skip user dari desa lain
+			}
+		  }
+		  
+		  users.push({
+			username: data.username || doc.id,
+			firstName: data.first_name || '',
+			lastName: data.last_name || '',
+			nama: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.username || '-',
+			email: data.email || '-',
+			role: data.role || 'USER_POSYANDU',
+			posyandu: data.posyandu || '-',
+			desa: data.desa || '-',
+			docId: doc.id
+		  });
+		});
+		
+		inactiveUsersData = users;
+		renderInactiveUsersCard(users);
+	  } catch (error) {
+		console.error('Error fetching inactive users:', error);
+		renderInactiveUsersCard([]);
+	  }
+	}
+
+	function renderInactiveUsersCard(users) {
+	  const container = document.getElementById('inactiveUsersContainer');
+	  
+	  if (!container) return;
+
+	  // Cek role dari session
+	  const sessionData = localStorage.getItem('userSession');
+	  let userRole = '';
+	  let userDesa = '';
+	  if (sessionData) {
+		try {
+		  const session = JSON.parse(sessionData);
+		  userRole = session.user?.role || '';
+		  userDesa = session.user?.desa || '';
+		} catch (e) {}
+	  }
+
+	  const allowedRoles = ['SUPER_ADMIN', 'ADMIN_DESA'];
+	  if (!users || users.length === 0 || !allowedRoles.includes(userRole)) {
+		container.style.display = 'none';
+		return;
+	  }
+
+	  container.style.display = 'block';
+	  
+	  // Tentukan label role yang sedang aktif
+	  const roleLabel = userRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN_DESA';
+	  const roleBadgeColor = userRole === 'SUPER_ADMIN' 
+		? 'bg-purple-600/20 text-purple-700 dark:text-purple-400 border-purple-500/30' 
+		: 'bg-blue-600/20 text-blue-700 dark:text-blue-400 border-blue-500/30';
+	  
+	  container.innerHTML = `
+		<div class="bg-amber-50/90 dark:bg-amber-900/30 backdrop-blur-lg border-l-4 border-amber-500 dark:border-amber-400 rounded-2xl shadow-lg shadow-amber-500/10 overflow-hidden transition-all duration-300">
+		  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-amber-100/50 dark:bg-amber-900/20 border-b border-amber-200/50 dark:border-amber-800/30 gap-3">
+			<div class="flex items-center gap-3 w-full sm:w-auto">
+			  <div class="p-2 bg-amber-500/20 rounded-xl flex-shrink-0">
+				<i class="fas fa-triangle-exclamation text-amber-600 dark:text-amber-400 text-xl"></i>
+			  </div>
+			  <div>
+				<div class="flex flex-wrap items-center gap-2">
+				  <h3 class="font-bold text-amber-800 dark:text-amber-300 text-sm">
+					<i class="fas fa-users-slash mr-2"></i>
+					User Belum Aktif (${users.length})
+				  </h3>
+				  <span class="px-2 py-0.5 ${roleBadgeColor} rounded-full text-[10px] font-bold border">
+					<i class="fas ${userRole === 'SUPER_ADMIN' ? 'fa-crown' : 'fa-shield-alt'} mr-1"></i>${roleLabel}
+				  </span>
+				  ${userDesa ? `<span class="px-2 py-0.5 bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-full text-[10px] font-bold">
+					<i class="fas fa-map-pin mr-1"></i>${userDesa}
+				  </span>` : ''}
+				</div>
+				<p class="text-xs text-amber-600/70 dark:text-amber-400/60">
+				  <i class="fas fa-info-circle mr-1"></i>
+				  ${users.length} user dengan status belum aktif dan memerlukan aktivasi
+				  ${userRole === 'ADMIN_DESA' ? ` (Desa: ${userDesa})` : ''}
+				</p>
+			  </div>
+			</div>
+			<div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+			  <button onclick="refreshInactiveUsers()" 
+					  class="p-1.5 hover:bg-amber-200/50 dark:hover:bg-amber-800/30 rounded-lg transition-colors" 
+					  title="Refresh data">
+				<i class="fas fa-rotate text-amber-600 dark:text-amber-400"></i>
+			  </button>
+			  <button onclick="toggleInactiveUsers()" 
+					  class="p-1.5 hover:bg-amber-200/50 dark:hover:bg-amber-800/30 rounded-lg transition-colors">
+				<i id="toggleInactiveIcon" class="fas fa-chevron-up text-amber-600 dark:text-amber-400"></i>
+			  </button>
+			</div>
+		  </div>
+		  
+		  <div id="inactiveUsersBody" class="p-4 overflow-x-auto">
+			<div class="table-responsive">
+			  <table class="w-full text-sm border-collapse min-w-[700px]">
+				<thead>
+				  <tr class="bg-amber-100/50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs uppercase font-semibold">
+					<th class="p-3 text-left rounded-tl-lg">No</th>
+					<th class="p-3 text-left">Username</th>
+					<th class="p-3 text-left">Nama Lengkap</th>
+					<th class="p-3 text-left">Email</th>
+					<th class="p-3 text-left">Role</th>
+					<th class="p-3 text-left hidden sm:table-cell">Desa</th>
+					<th class="p-3 text-center rounded-tr-lg">Aksi</th>
+				  </tr>
+				</thead>
+				<tbody id="inactiveUsersTableBody">
+				  ${users.map((user, index) => `
+					<tr class="border-b border-amber-200/30 dark:border-amber-800/20 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors">
+					  <td class="p-3 text-amber-600 dark:text-amber-400 font-medium">${index + 1}</td>
+					  <td class="p-3 font-mono text-xs text-amber-800 dark:text-amber-300">${user.username || '-'}</td>
+					  <td class="p-3 font-medium text-amber-800 dark:text-amber-200">${user.nama || '-'}</td>
+					  <td class="p-3 text-amber-700 dark:text-amber-300">${user.email || '-'}</td>
+					  <td class="p-3">
+						<span class="px-2.5 py-1 ${user.role === 'SUPER_ADMIN' ? 'bg-purple-200/50 dark:bg-purple-800/30 text-purple-700 dark:text-purple-300' : user.role === 'ADMIN_DESA' ? 'bg-blue-200/50 dark:bg-blue-800/30 text-blue-700 dark:text-blue-300' : 'bg-amber-200/50 dark:bg-amber-800/30 text-amber-700 dark:text-amber-300'} rounded-full text-xs font-medium">
+						  ${user.role || 'User'}
+						</span>
+					  </td>
+					  <td class="p-3 text-amber-700 dark:text-amber-300 hidden sm:table-cell">${user.desa || '-'}</td>
+					  <td class="p-3 text-center">
+						<div class="flex items-center justify-center gap-1.5">
+						  <button onclick="editUserInactive('${user.username}')" 
+								  class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-emerald-500/25 flex items-center gap-1">
+							<i class="fas fa-check-circle text-[10px]"></i>
+							<span>Aktifkan</span>
+						  </button>
+						</div>
+					  </td>
+					</tr>
+				  `).join('')}
+				</tbody>
+			  </table>
+			</div>
+		  </div>
+		  
+		  <div class="flex flex-col sm:flex-row justify-between items-center p-3 bg-amber-100/30 dark:bg-amber-900/10 border-t border-amber-200/30 dark:border-amber-800/20 gap-2">
+			<span class="text-[11px] text-amber-600/70 dark:text-amber-400/60">
+			  <i class="fas fa-clock mr-1"></i>
+			  ${users.length} user membutuhkan aktivasi
+			  ${userRole === 'ADMIN_DESA' ? ` (Desa: ${userDesa})` : ''}
+			</span>
+			<div class="flex items-center gap-2">
+			  <span class="text-[10px] text-amber-500/50 dark:text-amber-400/40">
+				<i class="fas fa-lock mr-1"></i>
+				${userRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin Desa'}
+			  </span>
+			  <button onclick="refreshInactiveUsers()" 
+					  class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5">
+				<i class="fas fa-rotate"></i>
+				Refresh
+			  </button>
+			</div>
+		  </div>
+		</div>
+	  `;
+	}
+
+	function toggleInactiveUsers() {
+	  const body = document.getElementById('inactiveUsersBody');
+	  const icon = document.getElementById('toggleInactiveIcon');
+	  
+	  if (!body) return;
+	  
+	  if (body.style.display === 'none') {
+		body.style.display = 'block';
+		if (icon) icon.className = 'fas fa-chevron-up text-amber-600 dark:text-amber-400';
+	  } else {
+		body.style.display = 'none';
+		if (icon) icon.className = 'fas fa-chevron-down text-amber-600 dark:text-amber-400';
+	  }
+	}
+
+	function refreshInactiveUsers() {
+	  const refreshBtn = document.querySelector('#inactiveUsersContainer .fa-rotate')?.parentElement;
+	  if (refreshBtn) {
+		const originalText = refreshBtn.innerHTML;
+		refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat...';
+		refreshBtn.disabled = true;
+	  }
+	  
+	  cekUsersInactive();
+	  
+	  setTimeout(() => {
+		if (refreshBtn) {
+		  refreshBtn.innerHTML = '<i class="fas fa-rotate"></i> Refresh';
+		  refreshBtn.disabled = false;
+		}
+	  }, 1000);
+	}
+
+	async function editUserInactive(username) {
+	  if (!username) return;
+	  
+	  const sessionData = localStorage.getItem('userSession');
+	  let userRole = '';
+	  let userDesa = '';
+	  if (sessionData) {
+		try {
+		  const session = JSON.parse(sessionData);
+		  userRole = session.user?.role || '';
+		  userDesa = session.user?.desa || '';
+		} catch (e) {}
+	  }
+	  
+	  const allowedRoles = ['SUPER_ADMIN', 'ADMIN_DESA'];
+	  if (!allowedRoles.includes(userRole)) {
+		Swal.fire({
+		  icon: 'error',
+		  title: 'Akses Ditolak',
+		  text: 'Hanya SUPER_ADMIN atau ADMIN_DESA yang dapat mengaktifkan user.',
+		  confirmButtonColor: '#4f46e5',
+		  background: '#0f172a',
+		  color: '#fff'
+		});
+		return;
+	  }
+	  
+	  // Jika ADMIN_DESA, cek apakah user dalam desa yang sama
+	  if (userRole === 'ADMIN_DESA') {
+		try {
+		  const snapshot = await db.collection('Users')
+			.where('username', '==', username)
+			.get();
+		  
+		  let userData = null;
+		  snapshot.forEach(doc => {
+			userData = doc.data();
+		  });
+		  
+		  if (userData && userData.desa !== userDesa) {
+			Swal.fire({
+			  icon: 'error',
+			  title: 'Akses Ditolak',
+			  text: `Anda tidak memiliki akses untuk mengaktifkan user dari desa lain.`,
+			  confirmButtonColor: '#4f46e5',
+			  background: '#0f172a',
+			  color: '#fff'
+			});
+			return;
+		  }
+		} catch (error) {
+		  console.error('Error checking user desa:', error);
+		}
+	  }
+	  
+	  Swal.fire({
+		title: 'Aktivasi User',
+		html: `
+		  <div style="text-align: left; color: #e2e8f0;">
+			<p class="text-sm text-slate-400 mb-3">Anda akan mengaktifkan user:</p>
+			<div class="bg-slate-800/50 p-3 rounded-lg mb-4">
+			  <p class="font-bold text-white">${username}</p>
+			  <p class="text-xs text-slate-400">Status: <span class="text-amber-400">Belum Aktif</span></p>
+			  ${userRole === 'ADMIN_DESA' ? `<p class="text-xs text-slate-400">Desa: <span class="text-emerald-400">${userDesa}</span></p>` : ''}
+			</div>
+			<p class="text-xs text-slate-400">Konfirmasi untuk mengubah status menjadi <span class="text-emerald-400">Aktif</span></p>
+		  </div>
+		`,
+		icon: 'question',
+		showCancelButton: true,
+		confirmButtonColor: '#10b981',
+		cancelButtonColor: '#64748b',
+		confirmButtonText: '✅ Ya, Aktifkan',
+		cancelButtonText: 'Batal',
+		background: '#0f172a',
+		color: '#fff',
+		reverseButtons: true
+	  }).then(async (result) => {
+		if (result.isConfirmed) {
+		  try {
+			Swal.fire({
+			  title: 'Memproses...',
+			  allowOutsideClick: false,
+			  didOpen: () => { Swal.showLoading(); }
+			});
+
+			// Cari user berdasarkan username
+			const snapshot = await db.collection('Users')
+			  .where('username', '==', username)
+			  .get();
+
+			if (snapshot.empty) {
+			  Swal.fire({
+				icon: 'error',
+				title: 'Gagal',
+				text: 'User tidak ditemukan.',
+				confirmButtonColor: '#4f46e5',
+				background: '#0f172a',
+				color: '#fff'
+			  });
+			  return;
+			}
+
+			let docId = null;
+			let userData = null;
+			snapshot.forEach(doc => {
+			  docId = doc.id;
+			  userData = doc.data();
+			});
+
+			if (docId) {
+			  // Verifikasi lagi untuk ADMIN_DESA
+			  if (userRole === 'ADMIN_DESA' && userData && userData.desa !== userDesa) {
+				Swal.fire({
+				  icon: 'error',
+				  title: 'Akses Ditolak',
+				  text: 'Anda tidak memiliki akses untuk mengaktifkan user dari desa lain.',
+				  confirmButtonColor: '#4f46e5',
+				  background: '#0f172a',
+				  color: '#fff'
+				});
+				return;
+			  }
+
+			  await db.collection('Users').doc(docId).update({
+				active: 1,
+				status: 'AKTIF',
+				updated_at: firebase.firestore.FieldValue.serverTimestamp()
+			  });
+
+			  Swal.fire({
+				icon: 'success',
+				title: 'Berhasil!',
+				text: `User ${username} berhasil diaktifkan.`,
+				timer: 2000,
+				showConfirmButton: false,
+				background: '#0f172a',
+				color: '#fff'
+			  });
+			  setTimeout(() => cekUsersInactive(), 500);
+			}
+		  } catch (error) {
+			console.error('Error activating user:', error);
+			Swal.fire({
+			  icon: 'error',
+			  title: 'Gagal',
+			  text: error.message || 'Terjadi kesalahan saat mengaktifkan user.',
+			  confirmButtonColor: '#4f46e5',
+			  background: '#0f172a',
+			  color: '#fff'
+			});
+		  }
+		}
+	  });
+	}
+
+    // ===================== RENDER DASHBOARD =====================
+    function renderDashboard(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('content').classList.remove('hidden');
+      document.getElementById('refreshIcon').classList.remove('animate-spin');
+
+      window._dashboardData = data;
+
+      // Update KPI
+      document.getElementById('kpiSpm').innerText = data.kpi.spmAvg + '%';
+      document.getElementById('kpiTotalWarga').innerText = data.kpi.totalWarga || 0;
+      document.getElementById('kpiStunting').innerText = data.kpi.stunting || 0;
+      document.getElementById('kpiRujukan').innerText = data.kpi.rujukan || 0;
+
+      // SPM 6 items
+      const spm6Items = [
+        { label: "Kesehatan", pct: data.spm6.kesehatan.pct, color: "#f43f5e", detail: data.spm6.kesehatan.detail },
+        { label: "Pendidikan", pct: data.spm6.pendidikan.pct, color: "#3b82f6", detail: data.spm6.pendidikan.detail },
+        { label: "PUPR", pct: data.spm6.pu.pct, color: "#06b6d4", detail: data.spm6.pu.detail },
+        { label: "Perumahan", pct: data.spm6.perumahan.pct, color: "#f59e0b", detail: data.spm6.perumahan.detail },
+        { label: "Trantibum", pct: data.spm6.trantib.pct, color: "#8b5cf6", detail: data.spm6.trantib.detail },
+        { label: "Sosial", pct: data.spm6.sosial.pct, color: "#10b981", detail: data.spm6.sosial.detail }
+      ];
+      window._spm6Data = spm6Items;
+      renderDoughnutChart(spm6Items);
+
+      // SPM Bars
+      const spmItems = [
+        { label: "1. Pelayanan Ibu Hamil (ANC)", data: data.spm.bumil, color: "bg-rose-500" },
+        { label: "2. Pelayanan Ibu Bersalin (Bulin)", data: data.spm.bulin, color: "bg-purple-500" },
+        { label: "3. Pelayanan Bayi Baru Lahir", data: data.spm.bayi, color: "bg-amber-500" },
+        { label: "4. Pelayanan Balita (Gizi & Timbang)", data: data.spm.balita, color: "bg-emerald-500" },
+      ];
+
+      document.getElementById('spmBars').innerHTML = spmItems.map(item => `
+        <div>
+          <div class="flex justify-between items-center text-xs mb-1.5 font-medium">
+            <span class="text-slate-700 dark:text-slate-300">${item.label}</span>
+            <span class="text-slate-500 dark:text-slate-400">${item.data.capaian} / ${item.data.target} (${item.data.pct}%)</span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+            <div class="${item.color} h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: ${item.data.pct}%"></div>
+          </div>
+        </div>
+      `).join('');
+
+      window._trenData = data.tren;
+      window._barData = data.tren;
+      renderLineChart(data.tren);
+      renderBarChart(data.tren);
+
+      // Update tabel balita
+      if (!data.tabelBalita || data.tabelBalita.length === 0) {
+        balitaData = [];
+      } else {
+        balitaData = data.tabelBalita;
+      }
+      balitaCurrentPage = 1;
+      renderTableBalita();
+
+      // Update tabel bumil
+      if (!data.tabelBumil || data.tabelBumil.length === 0) {
+        bumilData = [];
+      } else {
+        bumilData = data.tabelBumil;
+      }
+      bumilCurrentPage = 1;
+      renderTableBumil();
+
+      // Update tabel non kesehatan
+      const tbodyNon = document.getElementById('bodyTabelNonKesehatan');
+      if (!data.tabelNonKesehatan || data.tabelNonKesehatan.length === 0) {
+        tbodyNon.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 dark:text-slate-500">Belum ada pengaduan non-kesehatan recorded.</td></tr>`;
+      } else {
+        tbodyNon.innerHTML = data.tabelNonKesehatan.slice(0, 10).map(row => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <td class="p-3 text-slate-500 dark:text-slate-400">${row.tgl_layanan || '-'}</td>
+            <td class="p-3 font-medium text-slate-800 dark:text-white">${row.nama_warga || '-'}</td>
+            <td class="p-3"><span class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-bold">${row.bidang_spm || '-'}</span></td>
+            <td class="p-3 text-slate-600 dark:text-slate-300">${row.deskripsi_keluhan_layanan || '-'}</td>
+            <td class="p-3"><span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-bold">${row.status_tindak_lanjut || 'Diproses'}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      if (data.profilBalita && data.profilBumil) {
+        updateMapData(data);
+      }
+      updateReport(data);
+    }
+
+    // ===================== DOUGHNUT CHART =====================
+    function renderDoughnutChart(spmData) {
+      const ctx = document.getElementById('doughnutSpm').getContext('2d');
+      if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#e2e8f0' : '#1e293b';
+
+      const labels = spmData.map(d => d.label);
+      const values = spmData.map(d => d.pct);
+      const colors = spmData.map(d => d.color);
+
+      doughnutChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderColor: isDark ? '#0f172a' : '#ffffff',
+            borderWidth: 3,
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.label || '';
+                  let value = context.parsed || 0;
+                  return label + ': ' + value + '%';
+                }
+              }
+            }
+          },
+          cutout: '60%'
+        }
+      });
+
+      renderLegendWithProgress(spmData);
+    }
+
+    function renderLegendWithProgress(spmData) {
+      const legendContainer = document.getElementById('doughnutLegend');
+      
+      const iconMap = {
+        'Kesehatan': 'fa-heart-pulse',
+        'Pendidikan': 'fa-graduation-cap',
+        'PUPR': 'fa-faucet-drip',
+        'Perumahan': 'fa-house-chimney',
+        'Trantibum': 'fa-shield-halved',
+        'Sosial': 'fa-hand-holding-heart'
+      };
+
+      const progressColors = {
+        'Kesehatan': '#f43f5e',
+        'Pendidikan': '#3b82f6',
+        'PUPR': '#06b6d4',
+        'Perumahan': '#f59e0b',
+        'Trantibum': '#8b5cf6',
+        'Sosial': '#10b981'
+      };
+
+      legendContainer.innerHTML = spmData.map((d, i) => {
+        const icon = iconMap[d.label] || 'fa-circle';
+        const progressColor = progressColors[d.label] || d.color;
+        const pct = d.pct;
+        
+        let statusBadge = '';
+        let statusColor = '';
+        if (pct >= 80) {
+          statusBadge = '✅ Tercapai';
+          statusColor = 'text-emerald-500';
+        } else if (pct >= 50) {
+          statusBadge = '⚡ Perlu Perbaikan';
+          statusColor = 'text-yellow-500';
+        } else {
+          statusBadge = '⚠️ Prioritas';
+          statusColor = 'text-rose-500';
+        }
+
+        return `
+          <div class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 p-2.5 rounded-xl transition-all duration-300">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" 
+                    style="background-color: ${d.color}; box-shadow: 0 2px 8px ${d.color}40;">
+                  <i class="fa-solid ${icon} text-sm"></i>
+                </div>
+                <div>
+                  <span class="font-semibold text-slate-700 dark:text-slate-300 text-sm">${d.label}</span>
+                  <span class="text-[10px] ${statusColor} font-medium ml-2">${statusBadge}</span>
+                </div>
+              </div>
+              <span class="text-base font-extrabold text-slate-800 dark:text-white tabular-nums" 
+                    style="color: ${d.color}">
+                ${pct}%
+              </span>
+            </div>
+            
+            <div class="relative w-full h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div class="progress-bar h-full rounded-full transition-all duration-1000 ease-out" 
+                  style="width: 0%; background: linear-gradient(90deg, ${d.color}80, ${d.color});"
+                  data-target="${pct}">
+              </div>
+              <div class="absolute inset-0 w-full h-full shimmer-effect opacity-20 pointer-events-none"></div>
+            </div>
+            
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500">
+                <i class="fa-regular fa-circle-check mr-1"></i>
+                ${d.detail || 'Sub indikator SPM'}
+              </span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500">
+                ${pct >= 80 ? '✨ Optimal' : pct >= 50 ? '📈 Meningkat' : '🔴 Butuh Intervensi'}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setTimeout(animateProgressBars, 100);
+    }
+
+    function animateProgressBars() {
+      const progressBars = document.querySelectorAll('.progress-bar');
+      
+      progressBars.forEach((bar, index) => {
+        const target = parseInt(bar.dataset.target) || 0;
+        setTimeout(() => {
+          bar.style.width = target + '%';
+        }, index * 150);
+      });
+    }
+
+    // ===================== UPDATE MAP =====================
+    function updateMapData(data) {
+      const mapData = [];
+      
+      if (data.profilBalita) {
+        data.profilBalita.forEach((balita, index) => {
+          if (index < 3) {
+            const lat = -7.2 + (Math.random() - 0.5) * 0.08;
+            const lng = 109.06 + (Math.random() - 0.5) * 0.08;
+            mapData.push({
+              id: `stunting_${index}`,
+              type: "stunting",
+              name: balita.nama_bayi || `Balita ${index+1}`,
+              age: "12-24 Bulan",
+              parent: balita.nama_ibu || "Ibu",
+              status: "Stunting (Sangat Pendek)",
+              lat: lat,
+              lng: lng,
+              address: balita.alamat || "Desa Kaligiri"
+            });
+          }
+        });
+      }
+
+      if (data.profilBumil && data.tabelBumil) {
+        data.tabelBumil.forEach((bumil, index) => {
+          if (parseInt(bumil.k_ke) < 4) {
+            const lat = -7.22 + (Math.random() - 0.5) * 0.08;
+            const lng = 109.08 + (Math.random() - 0.5) * 0.08;
+            mapData.push({
+              id: `bumil_${index}`,
+              type: "spm_bumil",
+              name: bumil.nama_ibu || `Ibu ${index+1}`,
+              age: "Usia Hamil: 6-8 Bln",
+              parent: `Suami: -`,
+              status: `Belum K4 (K-${bumil.k_ke})`,
+              lat: lat,
+              lng: lng,
+              address: "Desa Kaligiri"
+            });
+          }
+        });
+      }
+
+      if (mapData.length === 0) {
+        const defaultData = [
+          { id: 1, type: "stunting", name: "Ananda Budi", age: "18 Bulan", parent: "Bpk. Rahmat", status: "Stunting (Sangat Pendek)", lat: -7.2156, lng: 109.0965, address: "Desa Kaligiri, RT 01 / RW 02" },
+          { id: 2, type: "stunting", name: "Siti Aisyah", age: "24 Bulan", parent: "Bpk. Hendra", status: "Stunting (Pendek)", lat: -7.2050, lng: 109.0775, address: "Desa Mendala, RT 03 / RW 01" },
+          { id: 3, type: "spm_bumil", name: "Ibu Maria", age: "Usia Hamil: 7 Bln", parent: "Suami: Bpk. Anton", status: "Belum K4 (Target SPM Rendah)", lat: -7.2474, lng: 109.1250, address: "Desa Igirklanceng, RT 04 / RW 02" },
+          { id: 4, type: "spm_imunisasi", name: "Adik Doni", age: "10 Bulan", parent: "Bpk. Agus", status: "Belum Imunisasi DPT3 & Polio 4", lat: -7.2080, lng: 109.0550, address: "Desa Manggis, RT 02 / RW 02" }
+        ];
+        window._spatialMapData = defaultData;
+      } else {
+        window._spatialMapData = mapData;
+      }
+
+      const stunting = window._spatialMapData.filter(d => d.type === 'stunting');
+      const bumilRisiko = window._spatialMapData.filter(d => d.type === 'spm_bumil');
+      const imunDO = window._spatialMapData.filter(d => d.type === 'spm_imunisasi');
+      
+      document.getElementById('totalStunting').innerText = stunting.length + ' Sasaran';
+      document.getElementById('totalBumilRisiko').innerText = bumilRisiko.length + ' Sasaran';
+      document.getElementById('totalImunisasiDO').innerText = imunDO.length + ' Sasaran';
+
+      if (mapInstance) {
+        renderMarkers();
+      }
+    }
+
+    // ===================== MAPS =====================
+    function initMap() {
+      if (mapInstance) {
+        setTimeout(() => { mapInstance.invalidateSize(); }, 200);
+        return;
+      }
+
+      mapInstance = L.map('map').setView([-7.204265, 109.062083], 13);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(mapInstance);
+
+      markersGroup = L.layerGroup().addTo(mapInstance);
+      renderMarkers();
+    }
+
+    function getMarkerColor(type) {
+      switch(type) {
+        case 'stunting': return '#e11d48'; 
+        case 'spm_bumil': return '#f59e0b'; 
+        case 'spm_imunisasi': return '#3b82f6'; 
+        default: return '#64748b';
+      }
+    }
+
+    function createPulsingMarker(color) {
+      return L.divIcon({
+        className: 'pulsing-marker',
+        html: `
+          <div class="pulse-ring" style="border-color: ${color};"></div>
+          <div class="pulse-ring" style="border-color: ${color};"></div>
+          <div class="core" style="background-color: ${color};"></div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -25]
+      });
+    }
+
+    function renderMarkers() {
+      if (!markersGroup) return;
+      markersGroup.clearLayers();
+
+      const showStunting = document.getElementById('chkStunting').checked;
+      const showBumil = document.getElementById('chkSpmBumil').checked;
+      const showImun = document.getElementById('chkSpmImunisasi').checked;
+
+      const data = window._spatialMapData || [];
+
+      data.forEach(item => {
+        if ((item.type === 'stunting' && showStunting) ||
+            (item.type === 'spm_bumil' && showBumil) ||
+            (item.type === 'spm_imunisasi' && showImun)) {
+
+          const color = getMarkerColor(item.type);
+          const marker = L.marker([item.lat, item.lng], { 
+            icon: createPulsingMarker(color) 
+          });
+
+          const popupContent = `
+            <div style="font-family: sans-serif; font-size: 12px; min-width: 180px;">
+              <strong style="font-size:14px; color:#1e293b;">${item.name}</strong><br>
+              <span style="color:#64748b;">${item.age}</span>
+              <hr style="margin:4px 0; border-color:#e2e8f0;">
+              <b>Detail:</b> ${item.parent}<br>
+              <b>Alamat:</b> ${item.address}<br>
+              <b>Status:</b> <span style="color:${color}; font-weight:bold;">${item.status}</span>
+            </div>
+          `;
+
+          marker.bindPopup(popupContent);
+          markersGroup.addLayer(marker);
+        }
+      });
+    }
+
+    // ===================== CHARTS =====================
+    function renderLineChart(tren) {
+      const ctx = document.getElementById('trenChart').getContext('2d');
+      if (trenChartInstance) trenChartInstance.destroy();
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#475569';
+      const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+
+      trenChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: tren.labels,
+          datasets: [
+            {
+              label: 'Pemeriksaan Balita',
+              data: tren.balita,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#3b82f6',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4
+            },
+            {
+              label: 'Pemeriksaan Ibu Hamil',
+              data: tren.bumil,
+              borderColor: '#f43f5e',
+              backgroundColor: 'rgba(244, 63, 94, 0.08)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#f43f5e',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { 
+              labels: { 
+                color: textColor,
+                font: { size: 11 }
+              } 
+            } 
+          },
+          scales: { 
+            y: { 
+              beginAtZero: true,
+              ticks: { color: textColor },
+              grid: { color: gridColor }
+            }, 
+            x: { 
+              grid: { display: false },
+              ticks: { color: textColor }
+            } 
+          }
+        }
+      });
+    }
+
+    function renderBarChart(tren) {
+      const ctx = document.getElementById('barChartSpm').getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#475569';
+      const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+
+      barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: tren.labels,
+          datasets: [
+            { 
+              label: 'Layanan Kesehatan', 
+              data: tren.kesehatan, 
+              backgroundColor: isDark ? '#34d399' : '#10b981',
+              borderRadius: 6,
+              borderSkipped: false
+            },
+            { 
+              label: 'Layanan Non-Kesehatan', 
+              data: tren.nonKesehatan, 
+              backgroundColor: isDark ? '#818cf8' : '#6366f1',
+              borderRadius: 6,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { 
+              labels: { 
+                color: textColor,
+                font: { size: 11 }
+              } 
+            } 
+          },
+          scales: { 
+            y: { 
+              beginAtZero: true,
+              ticks: { color: textColor },
+              grid: { color: gridColor }
+            }, 
+            x: { 
+              grid: { display: false },
+              ticks: { color: textColor }
+            } 
+          }
+        }
+      });
+    }
+
+    // ===================== UPDATE REPORT =====================
+    function updateReport(data) {
+      const totalBalita = data.tabelBalita ? data.tabelBalita.length : 0;
+      const totalBumil = data.tabelBumil ? data.tabelBumil.length : 0;
+      const targetBumil = data.spm.bumil.target || 0;
+      const targetBalita = data.spm.balita.target || 0;
+      const capaianBumil = data.spm.bumil.capaian || 0;
+      const capaianBalita = data.spm.balita.capaian || 0;
+
+      const skdnRows = document.querySelectorAll('#reportSKDN tr');
+      if (skdnRows.length >= 4) {
+        skdnRows[0].querySelectorAll('td')[1].textContent = Math.round(totalBalita * 0.4);
+        skdnRows[0].querySelectorAll('td')[2].textContent = Math.round(totalBalita * 0.4);
+        skdnRows[0].querySelectorAll('td')[3].textContent = Math.round(totalBalita * 0.2);
+        skdnRows[0].querySelectorAll('td')[4].textContent = totalBalita;
+        
+        skdnRows[1].querySelectorAll('td')[1].textContent = Math.round(totalBalita * 0.4);
+        skdnRows[1].querySelectorAll('td')[2].textContent = Math.round(totalBalita * 0.4);
+        skdnRows[1].querySelectorAll('td')[3].textContent = Math.round(totalBalita * 0.2);
+        skdnRows[1].querySelectorAll('td')[4].textContent = totalBalita;
+        
+        const ditimbang = Math.min(totalBalita, capaianBalita);
+        skdnRows[2].querySelectorAll('td')[1].textContent = Math.round(ditimbang * 0.4);
+        skdnRows[2].querySelectorAll('td')[2].textContent = Math.round(ditimbang * 0.4);
+        skdnRows[2].querySelectorAll('td')[3].textContent = Math.round(ditimbang * 0.2);
+        skdnRows[2].querySelectorAll('td')[4].textContent = ditimbang;
+        
+        const naik = Math.round(ditimbang * 0.82);
+        skdnRows[3].querySelectorAll('td')[1].textContent = Math.round(naik * 0.4);
+        skdnRows[3].querySelectorAll('td')[2].textContent = Math.round(naik * 0.4);
+        skdnRows[3].querySelectorAll('td')[3].textContent = Math.round(naik * 0.2);
+        skdnRows[3].querySelectorAll('td')[4].textContent = naik;
+      }
+
+      const spmRows = document.querySelectorAll('#reportSPM tr');
+      if (spmRows.length >= 3) {
+        spmRows[0].querySelectorAll('td')[1].textContent = targetBumil;
+        spmRows[0].querySelectorAll('td')[2].textContent = capaianBumil;
+        const pctBumil = targetBumil > 0 ? Math.round((capaianBumil/targetBumil) * 100) : 0;
+        spmRows[0].querySelectorAll('td')[3].innerHTML = pctBumil >= 80 ? 
+          `<span class="font-semibold text-emerald-600 dark:text-emerald-400">Tercapai (${pctBumil}%)</span>` :
+          `<span class="font-semibold text-amber-600 dark:text-amber-400">Belum Capai (${pctBumil}%)</span>`;
+        
+        spmRows[1].querySelectorAll('td')[1].textContent = targetBalita;
+        spmRows[1].querySelectorAll('td')[2].textContent = capaianBalita;
+        const pctBalita = targetBalita > 0 ? Math.round((capaianBalita/targetBalita) * 100) : 0;
+        spmRows[1].querySelectorAll('td')[3].innerHTML = pctBalita >= 80 ?
+          `<span class="font-semibold text-emerald-600 dark:text-emerald-400">Tercapai (${pctBalita}%)</span>` :
+          `<span class="font-semibold text-amber-600 dark:text-amber-400">Belum Capai (${pctBalita}%)</span>`;
+        
+        const stuntingCount = data.stuntingCount || 0;
+        spmRows[2].querySelectorAll('td')[2].textContent = stuntingCount + ' Anak';
+      }
+    }
+
+    // ===================== NAVIGATION =====================
+    function switchTab(tab) {
+      const vDash = document.getElementById('viewDashboard');
+      const vMap = document.getElementById('viewMap');
+      const vReport = document.getElementById('viewReport');
+      const vSpmDigital = document.getElementById('viewSpmDigital');
+
+      const btnDash = document.getElementById('btnTabDashboard');
+      const btnMap = document.getElementById('btnTabMap');
+      const btnReport = document.getElementById('btnTabReport');
+      const btnSpmDigital = document.getElementById('btnTabSpmDigital');
+
+      vDash.classList.add('hidden');
+      vMap.classList.add('hidden');
+      vReport.classList.add('hidden');
+      vSpmDigital.classList.add('hidden');
+
+      [btnDash, btnMap, btnReport, btnSpmDigital].forEach(btn => {
+        btn.classList.remove('border-emerald-500', 'text-emerald-600', 'dark:text-emerald-400');
+        btn.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+      });
+
+      if (tab === 'dashboard') {
+        vDash.classList.remove('hidden');
+        btnDash.classList.add('border-emerald-500', 'text-emerald-600', 'dark:text-emerald-400');
+      } else if (tab === 'map') {
+        vMap.classList.remove('hidden');
+        btnMap.classList.add('border-emerald-500', 'text-emerald-600', 'dark:text-emerald-400');
+        setTimeout(() => {
+          initMap();
+        }, 100);
+      } else if (tab === 'report') {
+        vReport.classList.remove('hidden');
+        btnReport.classList.add('border-emerald-500', 'text-emerald-600', 'dark:text-emerald-400');
+      } else if (tab === 'spmDigital') {
+        vSpmDigital.classList.remove('hidden');
+        btnSpmDigital.classList.add('border-emerald-500', 'text-emerald-600', 'dark:text-emerald-400');
+        setTimeout(() => {
+          muatDashboardSpm();
+        }, 100);
+      }
+    }
+
+    function cetakLaporan() {
+      switchTab('report');
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    }
+
+    // ================================================================
+    // 4. SPM DIGITAL FUNCTIONS
+    // ================================================================
+    function muatDashboardSpm() {
+      muatDropdownWarga();
+      muatRujukan();
+      muatStatistikDanGrafik();
+    }
+
+    async function muatRujukan() {
+      var tbody = document.getElementById('tabelRujukan');
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 dark:text-slate-500">Memuat data rujukan...</td></tr>';
+      
+      try {
+        const snapshot = await db.collection('Rujukan').orderBy('created_at', 'desc').limit(50).get();
+        const data = [];
+        snapshot.forEach(doc => {
+          const docData = doc.data();
+          data.push({
+            id: doc.id,
+            nik: docData.nik || '-',
+            tujuan: docData.tujuan || 'Puskesmas',
+            masalah: docData.masalah || '-',
+            status: docData.status || 'Dalam Penanganan'
+          });
+        });
+        cacheRujukan = data;
+        renderTabelRujukan(cacheRujukan);
+        document.getElementById('statRujukan').textContent = cacheRujukan.length;
+      } catch (error) {
+        console.error('Error loading rujukan:', error);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Gagal memuat rujukan: ${error.message}</td></tr>`;
+      }
+    }
+
+    function renderTabelRujukan(data) {
+      var tbody = document.getElementById('tabelRujukan');
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 dark:text-slate-500">Tidak ada kasus rujukan aktif saat ini. Aman!</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      data.forEach(function(item) {
+        var baris = `<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+          <td class="p-3 font-mono text-xs text-slate-500 dark:text-slate-400">${item.id}</td>
+          <td class="p-3 font-medium">${item.nik}</td>
+          <td class="p-3"><span class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded text-xs font-medium">${item.tujuan}</span></td>
+          <td class="p-3 text-slate-700 dark:text-slate-300">${item.masalah}</td>
+          <td class="p-3"><span class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 px-2 py-0.5 rounded text-xs font-semibold">${item.status}</span></td>
+        </tr>`;
+        tbody.innerHTML += baris;
+      });
+    }
+
+    function filterTabelRujukan() {
+      var keyword = document.getElementById('searchInput').value.toLowerCase();
+      var filtered = cacheRujukan.filter(function(item) {
+        return item.nik.toLowerCase().includes(keyword) || 
+               item.masalah.toLowerCase().includes(keyword) || 
+               item.tujuan.toLowerCase().includes(keyword);
+      });
+      renderTabelRujukan(filtered);
+    }
+
+    async function muatDropdownWarga() {
+      var selectNik = document.getElementById('layanan_nik');
+      
+      try {
+        const snapshot = await db.collection('Profil_balita').limit(100).get();
+        const snapshotBumil = await db.collection('Profil_bumil').limit(100).get();
+        
+        let wargaList = [];
+        
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          wargaList.push({
+            nik: data.nik_bayi || data.nik || data.id_bayi || doc.id,
+            nama: data.nama_bayi || data.nama || 'Balita'
+          });
+        });
+        
+        snapshotBumil.forEach(doc => {
+          const data = doc.data();
+          wargaList.push({
+            nik: data.nik_bumil || data.nik || data.id_bumil || doc.id,
+            nama: data.nama_bumil || data.nama || 'Ibu Hamil'
+          });
+        });
+
+        selectNik.innerHTML = '<option value="">-- Pilih NIK & Nama Warga --</option>';
+        if (wargaList.length > 0) {
+          document.getElementById('statTotalWarga').textContent = wargaList.length;
+          wargaList.forEach(function(item) {
+            var option = document.createElement('option');
+            option.value = item.nik;
+            option.textContent = item.nik + ' - ' + item.nama;
+            selectNik.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading warga:', error);
+      }
+    }
+
+    function muatStatistikDanGrafik() {
+      const ctxGizi = document.getElementById('chartGizi').getContext('2d');
+      if (chartGiziInstance) chartGiziInstance.destroy();
+      
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#475569';
+      
+      chartGiziInstance = new Chart(ctxGizi, {
+        type: 'doughnut',
+        data: {
+          labels: ['Gizi Baik', 'Gizi Kurang', 'Gizi Buruk', 'Stunting'],
+          datasets: [{
+            data: [12, 3, 1, 2],
+            backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#dc2626']
+          }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: textColor }
+            }
+          }
+        }
+      });
+
+      const ctxSpm = document.getElementById('chartSpm').getContext('2d');
+      if (chartSpmInstance) chartSpmInstance.destroy();
+      
+      chartSpmInstance = new Chart(ctxSpm, {
+        type: 'bar',
+        data: {
+          labels: ['Tanpa PAUD', 'Rumah Tidak Layak', 'Air Bersih-', 'Tanpa Bansos'],
+          datasets: [{
+            label: 'Jumlah Warga',
+            data: [4, 2, 5, 3],
+            backgroundColor: isDark ? '#60a5fa' : '#3b82f6'
+          }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: textColor }
+            }
+          },
+          scales: {
+            y: {
+              ticks: { color: textColor },
+              grid: { color: isDark ? '#1e293b' : '#e2e8f0' }
+            },
+            x: {
+              ticks: { color: textColor },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // ===================== SUBMIT FORMS =====================
+    function submitWarga(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnWarga');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Menyimpan...</span>';
+
+      var data = {
+        nik: document.getElementById('warga_nik').value,
+        nama: document.getElementById('warga_nama').value,
+        tanggalLahir: document.getElementById('warga_tgl').value,
+        alamat: document.getElementById('warga_alamat').value,
+        noHp: document.getElementById('warga_hp').value
+      };
+      
+      // Simpan ke Firebase
+      db.collection('Profil_balita').add({
+        nik_bayi: data.nik,
+        nama_bayi: data.nama,
+        tgl_lahir: data.tanggalLahir,
+        alamat: data.alamat,
+        no_hp: data.noHp,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil!',
+          text: 'Data warga berhasil disimpan ke Firebase!',
+          timer: 1500,
+          showConfirmButton: false,
+          background: '#0f172a',
+          color: '#fff'
+        });
+        document.getElementById('formWarga').reset();
+        muatDashboardSpm();
+        resetBtn(btn, 'Daftarkan Anggota');
+      }).catch((error) => {
+        console.error('Error saving:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: error.message,
+          background: '#0f172a',
+          color: '#fff'
+        });
+        resetBtn(btn, 'Daftarkan Anggota');
+      });
+    }
+
+    function submitLayanan(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnLayanan');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Menyimpan & Evaluasi...</span>';
+
+      var data = {
+        nik: document.getElementById('layanan_nik').value,
+        bb: document.getElementById('layanan_bb').value || '0',
+        tb: document.getElementById('layanan_tb').value || '0',
+        statusGizi: document.getElementById('layanan_gizi').value,
+        imunisasi: document.getElementById('layanan_imunisasi').value,
+        paud: document.getElementById('layanan_paud').value,
+        rumah: document.getElementById('layanan_rumah').value,
+        air: document.getElementById('layanan_air').value,
+        bansos: document.getElementById('layanan_bansos').value
+      };
+
+      // Simpan ke Firebase
+      db.collection('Periksa_balita').add({
+        nik_bayi: data.nik,
+        bb: parseFloat(data.bb) || 0,
+        tb: parseFloat(data.tb) || 0,
+        status_gizi: data.statusGizi,
+        imunisasi: data.imunisasi,
+        paud: data.paud,
+        rumah_layak: data.rumah,
+        akses_air: data.air,
+        bansos: data.bansos,
+        tgl_periksa: new Date().toISOString().split('T')[0],
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil!',
+          text: 'Layanan berhasil disimpan ke Firebase!',
+          timer: 1500,
+          showConfirmButton: false,
+          background: '#0f172a',
+          color: '#fff'
+        });
+        document.getElementById('formLayanan').reset();
+        muatDashboardSpm();
+        resetBtn(btn, 'Simpan Layanan & Evaluasi');
+      }).catch((error) => {
+        console.error('Error saving:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: error.message,
+          background: '#0f172a',
+          color: '#fff'
+        });
+        resetBtn(btn, 'Simpan Layanan & Evaluasi');
+      });
+    }
+
+    function resetBtn(btn, text) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>${text}</span>`;
+    }
+
+    // ================================================================
+    // 5. SWITCH PAGE (ADMIN)
+    // ================================================================
+	function switchPage(pageKey) {    
+		Swal.fire({
+		  title: 'Memuat Halaman',
+		  html: `Menuju halaman <b>${pageKey.toUpperCase()}</b>...`,
+		  timer: 1200,
+		  timerProgressBar: true,
+		  showConfirmButton: false,
+		  background: '#0f172a',  
+		  color: '#fff',
+		  showClass: {
+			popup: 'animate__animated animate__fadeInDown animate__faster'
+		  },
+		  hideClass: {
+			popup: 'animate__animated animate__fadeOutUp animate__faster'
+		  },
+		  didOpen: () => {
+			Swal.showLoading();
+		  }
+		}).then(() => {
+			window.location.href = `posyandu.html`;
+		});
+	  }
+
+    // ================================================================
+    // 6. TABEL PAGINATION
+    // ================================================================
+    let balitaData = [];
+    let bumilData = [];
+
+    let balitaCurrentPage = 1;
+    let balitaPerPage = 25;
+    let balitaTotalPages = 0;
+
+    let bumilCurrentPage = 1;
+    let bumilPerPage = 25;
+    let bumilTotalPages = 0;
+
+    function renderTableBalita() {
+      const tbody = document.getElementById('bodyTabelBalita');
+      const totalData = balitaData.length;
+      
+      const perPage = balitaPerPage === 'all' ? totalData : parseInt(balitaPerPage);
+      balitaTotalPages = perPage > 0 ? Math.ceil(totalData / perPage) : 1;
+      if (balitaCurrentPage > balitaTotalPages) balitaCurrentPage = balitaTotalPages;
+      if (balitaCurrentPage < 1) balitaCurrentPage = 1;
+      
+      const start = (balitaCurrentPage - 1) * perPage;
+      const end = perPage === 'all' ? totalData : Math.min(start + perPage, totalData);
+      const pageData = balitaData.slice(start, end);
+      
+      document.getElementById('totalBalitaCount').textContent = totalData;
+      document.getElementById('balitaInfo').textContent = `Menampilkan ${pageData.length} dari ${totalData} data`;
+      document.getElementById('balitaPageInfo').textContent = `Halaman ${balitaCurrentPage} dari ${balitaTotalPages || 1}`;
+      
+      document.getElementById('prevBalita').disabled = balitaCurrentPage <= 1;
+      document.getElementById('nextBalita').disabled = balitaCurrentPage >= balitaTotalPages || balitaTotalPages === 0;
+      
+      if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 dark:text-slate-500">Belum ada data pemeriksaan balita</td></tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = pageData.map((item, index) => `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+          <td class="p-3 text-slate-400 dark:text-slate-500 font-mono text-xs">${start + index + 1}</td>
+          <td class="p-3 font-medium text-slate-800 dark:text-white">${item.nama_bayi || '-'}</td>
+          <td class="p-3 text-slate-500 dark:text-slate-400">${item.tgl_periksa || '-'}</td>
+          <td class="p-3 text-slate-600 dark:text-slate-300 font-semibold">${item.tb || '0'} cm / ${item.bb || '0'} kg</td>
+          <td class="p-3">
+            <span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-medium">
+              ${item.jenis_imunisasi || 'Rutin'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTableBumil() {
+      const tbody = document.getElementById('bodyTabelBumil');
+      const totalData = bumilData.length;
+      
+      const perPage = bumilPerPage === 'all' ? totalData : parseInt(bumilPerPage);
+      bumilTotalPages = perPage > 0 ? Math.ceil(totalData / perPage) : 1;
+      if (bumilCurrentPage > bumilTotalPages) bumilCurrentPage = bumilTotalPages;
+      if (bumilCurrentPage < 1) bumilCurrentPage = 1;
+      
+      const start = (bumilCurrentPage - 1) * perPage;
+      const end = perPage === 'all' ? totalData : Math.min(start + perPage, totalData);
+      const pageData = bumilData.slice(start, end);
+      
+      document.getElementById('totalBumilCount').textContent = totalData;
+      document.getElementById('bumilInfo').textContent = `Menampilkan ${pageData.length} dari ${totalData} data`;
+      document.getElementById('bumilPageInfo').textContent = `Halaman ${bumilCurrentPage} dari ${bumilTotalPages || 1}`;
+      
+      document.getElementById('prevBumil').disabled = bumilCurrentPage <= 1;
+      document.getElementById('nextBumil').disabled = bumilCurrentPage >= bumilTotalPages || bumilTotalPages === 0;
+      
+      if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 dark:text-slate-500">Belum ada data pemeriksaan ibu hamil</td></tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = pageData.map((item, index) => {
+        let badgeColor = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
+        if (item.k_ke && parseInt(item.k_ke) < 4) {
+          badgeColor = 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400';
+        } else if (item.k_ke && parseInt(item.k_ke) >= 4) {
+          badgeColor = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
+        }
+        
+        return `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+            <td class="p-3 text-slate-400 dark:text-slate-500 font-mono text-xs">${start + index + 1}</td>
+            <td class="p-3 font-medium text-slate-800 dark:text-white">${item.nama_ibu || '-'}</td>
+            <td class="p-3 text-slate-500 dark:text-slate-400">${item.tgl_periksa || '-'}</td>
+            <td class="p-3 text-slate-600 dark:text-slate-300 font-semibold">${item.sistol || '0'}/${item.distol || '0'} mmHg</td>
+            <td class="p-3">
+              <span class="${badgeColor} px-2.5 py-1 rounded-full text-[10px] font-medium">
+                K-${item.k_ke || '1'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterTableBalita() {
+      const filter = document.getElementById('filterBalita').value;
+      balitaPerPage = filter;
+      balitaCurrentPage = 1;
+      renderTableBalita();
+    }
+
+    function filterTableBumil() {
+      const filter = document.getElementById('filterBumil').value;
+      bumilPerPage = filter;
+      bumilCurrentPage = 1;
+      renderTableBumil();
+    }
+
+    function prevPageBalita() {
+      if (balitaCurrentPage > 1) {
+        balitaCurrentPage--;
+        renderTableBalita();
+      }
+    }
+
+    function nextPageBalita() {
+      if (balitaCurrentPage < balitaTotalPages) {
+        balitaCurrentPage++;
+        renderTableBalita();
+      }
+    }
+
+    function prevPageBumil() {
+      if (bumilCurrentPage > 1) {
+        bumilCurrentPage--;
+        renderTableBumil();
+      }
+    }
+
+    function nextPageBumil() {
+      if (bumilCurrentPage < bumilTotalPages) {
+        bumilCurrentPage++;
+        renderTableBumil();
+      }
+    }
+
+    // ================================================================
+    // 7. INIT
+    // ================================================================
+    document.addEventListener("DOMContentLoaded", function() {
+      const sessionData = localStorage.getItem('userSession');
+      
+      if (sessionData) {
+        try {
+          const session = JSON.parse(sessionData);
+          const now = new Date().getTime();
+
+          if (now < session.expiresAt) {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            loadData();
+            return;
+          } else {
+            localStorage.removeItem('userSession');
+          }
+        } catch (e) {
+          localStorage.removeItem('userSession');
+        }
+      }
+      
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('dashboardPage').classList.add('hidden');
+      
+      if (typeof Alpine !== 'undefined') {
+        Alpine.initTree(document.getElementById('loginPage'));
+      }
+    });
+  </script>
+
+</body>
+</html>

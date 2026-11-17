@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ePosyandu Kecamatan Sirampog</title>
+  <link rel="shortcut icon" type="image/png" href="https://lh3.googleusercontent.com/d/1Dw8TAxb0lZB8CMXdBFOxi0jR0q4UHSOU">	
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">	
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    @keyframes pulse-slow {
+      0%, 100% { transform: scale(1) translate(0, 0); }
+      50% { transform: scale(1.1) translate(-20px, 20px); }
+    }
+    .animate-blob {
+      animation: pulse-slow 8s infinite ease-in-out;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    @keyframes glow-lime {
+      0%, 100% { box-shadow: 0 0 15px rgba(132, 204, 22, 0.3), 0 0 30px rgba(132, 204, 22, 0.15); }
+      50% { box-shadow: 0 0 25px rgba(132, 204, 22, 0.6), 0 0 50px rgba(132, 204, 22, 0.3); }
+    }
+    .animate-glow-lime {
+      animation: glow-lime 3s infinite ease-in-out;
+    }
+
+    /* ===== MODAL OVERLAY ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.75);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-overlay.hide {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+
+    /* ===== MODAL CONTENT ===== */
+    .modal-content {
+      background: linear-gradient(145deg, rgba(25, 25, 112, 0.95), rgba(10, 10, 50, 0.95));
+      padding: 35px 30px;
+      border-radius: 20px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(132, 204, 22, 0.1);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      border: 1px solid rgba(132, 204, 22, 0.2);
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
+      opacity: 0;
+    }
+
+    .modal-overlay.show .modal-content {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .modal-overlay.hide .modal-content {
+      transform: scale(0.8) translateY(40px);
+      opacity: 0;
+      transition: transform 0.5s ease-in, opacity 0.5s ease;
+    }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-container {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-top: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #84cc16, #22d3ee, #84cc16);
+      background-size: 200% 100%;
+      border-radius: 2px;
+      width: 0%;
+      animation: shimmer-progress 1.5s infinite;
+      transition: width 0.3s ease;
+    }
+
+    @keyframes shimmer-progress {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* ===== SPINNER ===== */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(132, 204, 22, 0.1);
+      border-top: 3px solid #84cc16;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ===== AYAT STYLE ===== */
+    .ayat-box {
+      padding: 16px 20px;
+      background: rgba(26, 35, 126, 0.4);
+      border-radius: 14px;
+      border-left: 4px solid #84cc16;
+      margin: 10px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ayat-box::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(132, 204, 22, 0.03) 0%, transparent 70%);
+      animation: pulse-ayat 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-ayat {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
+    .ayat-label {
+      font-size: 11px;
+      opacity: 0.6;
+      font-weight: 600;
+      color: #84cc16;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ayat-arab {
+      font-size: 22px;
+      font-weight: 600;
+      color: #E8F5E9;
+      direction: rtl;
+      font-family: 'Traditional Arabic', 'Amiri', 'Times New Roman', serif;
+      margin-top: 6px;
+      min-height: 36px;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 20px rgba(132, 204, 22, 0.1);
+    }
+
+    .ayat-terjemahan {
+      font-size: 13px;
+      opacity: 0.9;
+      font-style: italic;
+      margin-top: 6px;
+      color: #C8E6C9;
+      min-height: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ayat-sumber {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 4px;
+      color: #A5D6A7;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== TIMER TEXT ===== */
+    .timer-text {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 12px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 relative overflow-x-hidden font-sans">
+
+  <!-- Background Animated Blobs -->
+  <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl animate-blob pointer-events-none"></div>
+		<div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-600/20 rounded-full blur-3xl animate-blob pointer-events-none" style="animation-delay: 4s;"></div>
+		  <!-- ===== SPLASH WARNING MODAL ===== -->
+		  <div id="warningModal" class="modal-overlay">
+			<div class="modal-content">
+			  <div class="flex justify-center mb-3">
+		  <img src="img/fazz.jpg" 
+			   style="height:80px; width:80px; border-radius:50%; border: 2px solid #84cc16; padding: 4px; animation: neon-glow 1.5s ease-in-out infinite alternate;"
+			   alt="fazz" class="header-logo">
+		</div>
+		<style>@keyframes neon-glow {0% {box-shadow: 0 0 5px #84cc16, 0 0 10px #84cc16, 0 0 20px #84cc16, 0 0 40px rgba(132, 204, 22, 0.3);border-color: #84cc16;}100% {box-shadow: 0 0 10px #a3e635, 0 0 20px #a3e635, 0 0 40px #a3e635, 0 0 80px rgba(132, 204, 22, 0.5);border-color: #a3e635;}}</style>
+
+      <h2 style="color: #84cc16; font-size: 20px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px;">
+        ✦ Bismillah... ✦
+      </h2>
+      <div class="ayat-box">
+        <div class="ayat-label" style="color:yellow">✨ Ayat Hari Ini</div>
+        <div id="ayatArab" class="ayat-arab" style="font-size: 22px; font-weight: 600; color: #E8F5E9; direction: rtl; font-family: 'Traditional Arabic', 'Amiri', serif; margin-top: 4px; min-height: 30px;">⏳ Memuat...</div>
+        <div id="ayatTerjemahan" class="ayat-terjemahan"><em>Mengambil ayat acak...</em></div>
+        <div id="ayatSumber" class="ayat-sumber">─ ⏳</div>
+      </div>
+      <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.6; margin-top: 12px;">
+        Mohon Doa untuk <b style="color: #22d3ee;">Fasawwa Ahmadi Aqna</b>
+        <br>
+        <span style="font-size: 14px; color: rgba(255,255,255,0.4);">
+          Allahummaghfirlahu warhamhu wa-afihi wa'fuanhu... aamiin
+        </span>
+      </p>
+      <div class="progress-container">
+        <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+      </div>
+      <div class="timer-text" id="timerText">⏳ 7 detik</div>
+      <div class="spinner" style="margin-top: 12px;"></div>
+    </div>
+  </div>
+
+  <!-- ===== Container Utama ===== -->
+  <div x-data="authApp()" class="w-full max-w-md glass-card rounded-3xl p-6 sm:p-8 relative z-10 my-8 border border-lime-500/40 bg-slate-950/80 backdrop-blur-xl animate-glow-lime transition-all duration-500">
+      
+      <!-- Header App -->
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-lime-500/10 border border-lime-500/40 rounded-2xl flex items-center justify-center mx-auto mb-3 text-lime-400 shadow-[0_0_15px_rgba(132,204,22,0.3)]">
+          <img src="https://lh3.googleusercontent.com/d/1Dw8TAxb0lZB8CMXdBFOxi0jR0q4UHSOU" alt="Logo" class="h-12 w-auto object-contain drop-shadow" style="border-radius:20%;width:50px;height:auto;">
+        </div>
+        <h2 class="text-2xl font-bold tracking-tight text-white drop-shadow-[0_0_8px_rgba(132,204,22,0.5)]">ePosyandu</h2>
+        <p class="text-xs text-slate-400 mt-1">Elektronik Sistem Pos Pelayanan Terpadu</p>
+        <h2 class="text-2xl font-bold tracking-tight drop-shadow-[0_0_8px_rgba(132,204,22,0.5)]" style="color:cyan">Kecamatan Sirampog</h2>
+      </div>
+
+      <!-- TAB 1: LOGIN -->
+      <div x-show="activeTab === 'login'">
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Username / Email</label>
+            <div class="relative">
+              <input type="text" x-model="loginForm.username" required placeholder="Masukkan username/email"
+                    class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50 transition">
+              <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3"></i>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+            <div class="relative">
+              <input type="password" x-model="loginForm.password" required placeholder="••••••••"
+                    class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50 transition">
+              <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3"></i>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="button" @click="switchTab('forgot')" class="text-[11px] text-lime-400 hover:text-lime-300 hover:underline transition">Lupa Password?</button>
+          </div>
+
+          <button type="submit" :disabled="loading"
+                  class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-semibold text-xs shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 disabled:opacity-50">     
+            <template x-if="!loading">
+              <span class="flex items-center gap-2">Masuk Ke Admin <i data-lucide="arrow-right" class="w-4 h-4"></i></span>
+            </template>
+            <template x-if="loading">
+              <span class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...</span>
+            </template>
+          </button>
+		  <button @click="goHome()" 
+				class="w-full p-2 text-cyan-400 hover:text-white bg-lime-600/20 hover:bg-lime-700 border border-lime-500/40 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(132,204,22,0.4)] hover:shadow-[0_0_25px_rgba(132,204,22,0.7)] group">
+			<i class="fas fa-sign-in-alt text-lime-400 group-hover:text-white"></i>
+			<span class="text-xs font-medium">Dashboard Posyandu 6 SPM</span>
+		  </button>
+        </form>
+
+        <div class="text-center mt-6 text-xs text-slate-400">
+          Belum memiliki akun? <button @click="switchTab('register')" class="text-lime-400 font-semibold hover:underline">Daftar Sekarang</button>
+        </div>
+      </div>
+
+      <!-- TAB 2: REGISTRASI -->
+      <div x-show="activeTab === 'register'" style="display: none;">
+        <form @submit.prevent="handleRegister" class="space-y-3">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Depan</label>
+              <input type="text" x-model="regForm.firstName" required placeholder="Nama Depan" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Belakang</label>
+              <input type="text" x-model="regForm.lastName" required placeholder="Nama Belakang" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Username</label>
+              <input type="text" x-model="regForm.username" required placeholder="username" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">No. WhatsApp/HP</label>
+              <input type="text" x-model="regForm.phone" required placeholder="No WhatsApp Aktif diawali dengan 62" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Email</label>
+            <input type="email" x-model="regForm.email" required placeholder="Email aktif, contoh admin@gmail.com" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+          </div>
+		  
+		  <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
+            <input type="password" x-model="regForm.password" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+          </div>
+		  
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Posyandu</label>
+            <div class="relative">
+              <select x-model="regForm.posyandu" required 
+                      class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50 appearance-none">
+                <option value="" disabled selected>-- Pilih Posyandu --</option>
+                <template x-for="item in listPosyandu" :key="item">
+                  <option :value="item" x-text="item" class="bg-slate-900 text-white"></option>
+                </template>
+              </select>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-500 absolute right-3 top-2.5 pointer-events-none"></i>
+            </div>
+          </div>
+		  <div class="grid grid-cols-2 gap-2.5">	
+			  <div>
+				<label class="block text-[11px] font-semibold text-slate-300 mb-1">Desa</label>
+				<select x-model="regForm.desa" required 
+				class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50 appearance-none">
+					<option value="" disabled selected>-- Pilih Desa --</option>
+					<option value="Desa Batursari" >Desa Batursari</option>
+					<option value="Desa Benda" >Desa Benda</option>
+					<option value="Desa Buniwah" >Desa Buniwah</option>
+					<option value="Desa Dawuhan" >Desa Dawuhan</option>
+					<option value="Desa Igirklanceng" >Desa Igirklanceng</option>
+					<option value="Desa Kaligiri" >Desa Kaligiri</option>
+					<option value="Desa Kaliloka" >Desa Kaliloka</option>
+					<option value="Desa Manggis" >Desa Manggis</option>
+					<option value="Desa Mendala" >Desa Mendala</option>
+					<option value="Desa Mlayang" >Desa Mlayang</option>
+					<option value="Desa Plompong" >Desa Plompong</option>
+					<option value="Desa Sridadi" >Desa Sridadi</option>
+					<option value="Desa Wanareja" >Desa Wanareja</option>
+				</select>
+			  </div>		  
+			  <div>
+				<label class="block text-[11px] font-semibold text-slate-300 mb-1">Status USER</label>
+				<select x-model="regForm.role" required 
+				class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50 appearance-none">
+					<option value="" disabled selected>-- Pilih Status User --</option>
+					<option value="USER_POSYANDU" >User Posyandu</option>
+					<option value="ADMIN_DESA" >Admin Desa</option>
+				</select>
+			  </div>
+			</div>  
+          
+
+          <div class="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] text-amber-300">
+            * Pendaftaran baru akan berstatus <strong>NON-AKTIF</strong> dan memerlukan persetujuan Admin Desa sebelum dapat login.
+          </div>
+
+          <button type="submit" :disabled="loading" 
+                  class="w-full bg-lime-500 hover:bg-lime-400 text-slate-950 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-lime-500/25 hover:shadow-lime-500/40 transition flex items-center justify-center gap-2 disabled:opacity-50 mt-2">
+            <template x-if="!loading">
+              <span>Daftar Akun Baru</span>
+            </template>
+            <template x-if="loading">
+              <span class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...</span>
+            </template>
+          </button>
+        </form>
+
+        <div class="text-center mt-4 text-xs text-slate-400">
+          Sudah punya akun? <button @click="switchTab('login')" class="text-lime-400 font-semibold hover:underline">Masuk</button>
+        </div>
+      </div>
+
+      <!-- TAB 3: LUPA PASSWORD -->
+      <div x-show="activeTab === 'forgot'" style="display: none;">
+        <p class="text-xs text-slate-400 mb-4 text-center">Masukkan email Anda yang terdaftar untuk menerima instruksi kata sandi.</p>
+
+        <form @submit.prevent="handleForgot" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Email Terdaftar</label>
+            <div class="relative">
+              <input type="email" x-model="forgotEmail" required placeholder="email@gmail.com"
+                    class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/50">
+              <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3"></i>
+            </div>
+          </div>
+
+          <button type="submit" :disabled="loading" 
+                  class="w-full bg-lime-500 hover:bg-lime-400 text-slate-950 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-lime-500/25 hover:shadow-lime-500/40 transition flex items-center justify-center gap-2 disabled:opacity-50">
+            <template x-if="!loading">
+              <span>Kirim Password ke Email</span>
+            </template>
+            <template x-if="loading">
+              <span class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Mengirim...</span>
+            </template>
+          </button>
+        </form>
+
+        <div class="text-center mt-6 text-xs text-slate-400">
+          Kembali ke halaman <button @click="switchTab('login')" class="text-lime-400 font-semibold hover:underline">Masuk</button>
+        </div>
+      </div>
+
+    </div>
+
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT: FIREBASE + ALPINE + SPLASH MODAL                 -->
+  <!-- ============================================================ -->
+  <script>
+    // ===================== FIREBASE CONFIG =====================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqLcw3xKnZvNGxKSJqwsaiNS7CA--5ABw",
+      authDomain: "eposyandu-sirampog.firebaseapp.com",
+      projectId: "eposyandu-sirampog",
+      storageBucket: "eposyandu-sirampog.firebasestorage.app",
+      messagingSenderId: "1017808893287",
+      appId: "1:1017808893287:web:917604708e7673dc342bc2",
+      measurementId: "G-419Z7QZHS3"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ===================== ALPINE.JS APP =====================
+    function authApp() {
+      return {
+        activeTab: 'login',
+        loading: false,
+        forgotEmail: '',
+        redirectUrl: "posyandu.html",
+        listPosyandu: [
+          "POSYANDU DK.SLADA",
+          "POSYANDU LAGARAN",
+          "POSYANDU GUDANG",
+          "POSYANDU GRAUL PETUNG",
+          "POSYANDU PAKISHAJI",
+          "POSYANDU DUKUH PERENG"
+        ],
+        loginForm: { username: '', password: '' },
+        regForm: { firstName: '', lastName: '', username: '', phone: '', email: '', posyandu: '', password: '', desa: '' },
+
+        init() {
+          this.checkSession();
+          this.fetchPosyanduList();
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          });
+        },
+
+        async fetchPosyanduList() {
+          try {
+            const snapshot = await db.collection("posyandu").get();
+            if (!snapshot.empty) {
+              this.listPosyandu = snapshot.docs.map(doc => doc.data().nama || doc.id);
+            }
+          } catch (e) {
+            console.log("Menggunakan list posyandu default");
+          }
+        },
+
+        switchTab(tab) {
+          this.activeTab = tab;
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          });
+        },
+
+        checkSession() {
+          const sessionData = localStorage.getItem('userSession');
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              const now = new Date().getTime();
+              if (now < session.expiresAt) {
+                window.top.location.href = this.redirectUrl;
+              } else {
+                localStorage.removeItem('userSession');
+              }
+            } catch (e) {
+              localStorage.removeItem('userSession');
+            }
+          }
+        },
+
+        async handleLogin() {
+          this.loading = true;
+          try {
+            const userInput = this.loginForm.username.trim().toLowerCase();
+            const passwordInput = this.loginForm.password;
+
+            let snapshot = await db.collection("Users").where("username", "==", userInput).get();
+            if (snapshot.empty) {
+              snapshot = await db.collection("Users").where("email", "==", userInput).get();
+            }
+
+            if (snapshot.empty) {
+              this.loading = false;
+              Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Username atau Email tidak ditemukan!',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a', color: '#fff'
+              });
+              return;
+            }
+
+            const userData = snapshot.docs[0].data();
+
+            if (userData.password !== passwordInput) {
+              this.loading = false;
+              Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Password yang Anda masukkan salah!',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a', color: '#fff'
+              });
+              return;
+            }
+
+            if (userData.status && userData.status.toUpperCase() === 'NON-AKTIF') {
+              this.loading = false;
+              Swal.fire({
+                icon: 'warning',
+                title: 'Akun Belum Aktif',
+                text: 'Akun Anda belum disetujui oleh Admin Desa.',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a', color: '#fff'
+              });
+              return;
+            }
+
+            const TWO_HOURS = 2 * 60 * 60 * 1000;
+            const sessionPayload = {
+              user: userData,
+              loginAt: new Date().getTime(),
+              expiresAt: new Date().getTime() + TWO_HOURS
+            };
+            localStorage.setItem('userSession', JSON.stringify(sessionPayload));
+
+            this.loading = false;
+            Swal.fire({
+              icon: 'success',
+              title: 'Login Berhasil!',
+              text: 'Selamat datang ' + (userData.firstName || userData.username) + ', mengalihkan...',
+              timer: 1500,
+              showConfirmButton: false,
+              background: '#0f172a', color: '#fff'
+            }).then(() => {
+              window.top.location.href = this.redirectUrl;
+            });
+
+          } catch (error) {
+            console.error("Login Error:", error);
+            this.loading = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Gagal terhubung ke Firestore: ' + error.message,
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a', color: '#fff'
+            });
+          }
+        },
+
+        async handleRegister() {
+          this.loading = true;
+          try {
+            const docId = this.regForm.username.trim().toLowerCase();
+
+            await db.collection("Users").doc(docId).set({
+              first_name: this.regForm.firstName,
+              last_name: this.regForm.lastName,
+              username: docId,
+              phone: this.regForm.phone,
+              email: this.regForm.email.toLowerCase(),
+              posyandu: this.regForm.posyandu,
+              password: this.regForm.password,
+			  desa: this.regForm.desa,
+			  role: this.regForm.role,
+			  ip_address: '::1',
+              active: 0,
+              createdAt: new Date().toISOString()
+            });
+
+            this.loading = false;
+            Swal.fire({
+              icon: 'success',
+              title: 'Pendaftaran Berhasil!',
+              text: 'Akun berhasil dibuat. Silakan tunggu verifikasi Admin Desa.',
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a', color: '#fff'
+            }).then(() => {
+              this.regForm = { firstName: '', lastName: '', username: '', phone: '', email: '', posyandu: '', password: '' };
+              this.switchTab('login');
+            });
+
+          } catch (error) {
+            console.error("Register Error:", error);
+            this.loading = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Pendaftaran Gagal',
+              text: 'Gagal menyimpan akun: ' + error.message,
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a', color: '#fff'
+            });
+          }
+        },
+
+        async handleForgot() {
+          this.loading = true;
+          try {
+            const emailInput = this.forgotEmail.trim().toLowerCase();
+            const snapshot = await db.collection("Users").where("email", "==", emailInput).get();
+
+            this.loading = false;
+
+            if (snapshot.empty) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Email Tidak Ditemukan',
+                text: 'Email tersebut belum terdaftar di sistem.',
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a', color: '#fff'
+              });
+            } else {
+              const user = snapshot.docs[0].data();
+              Swal.fire({
+                icon: 'info',
+                title: 'Informasi Akun',
+                text: `Password untuk akun ${user.username} adalah: "${user.password}"`,
+                confirmButtonColor: '#4f46e5',
+                background: '#0f172a', color: '#fff'
+              }).then(() => {
+                this.forgotEmail = '';
+                this.switchTab('login');
+              });
+            }
+          } catch (error) {
+            this.loading = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: error.message,
+              confirmButtonColor: '#4f46e5',
+              background: '#0f172a', color: '#fff'
+            });
+          }
+        },
+		
+		goHome() {
+          Swal.fire({
+			  title: 'Memuat Halaman',
+			  html: `Menuju halaman <b>Dashboard Posyandu 6 SPM</b>...`,
+			  timer: 1200,
+			  timerProgressBar: true,
+			  showConfirmButton: false,
+			  background: '#0f172a',  
+			  color: '#fff',
+			  showClass: {
+				popup: 'animate__animated animate__fadeInDown animate__faster'
+			  },
+			  hideClass: {
+				popup: 'animate__animated animate__fadeOutUp animate__faster'
+			  },
+			  didOpen: () => {
+				Swal.showLoading();
+			  }
+			}).then(() => {
+				window.location.href = `depan.html`;
+			});
+        },
+		
+      };
+    }
+
+    // ===================== SPLASH MODAL CONTROLLER =====================
+    async function muatAyat() {
+		const ayatArab = document.getElementById('ayatArab');
+		const ayatTerjemahan = document.getElementById('ayatTerjemahan');
+		const ayatSumber = document.getElementById('ayatSumber');
+
+		try {
+			// 1. Pilih nomor surat secara acak (1 - 114)
+			const randomSurat = Math.floor(Math.random() * 114) + 1;
+			
+			const response = await fetch(`https://equran.id/api/v2/surat/${randomSurat}`);
+			if (!response.ok) throw new Error('Gagal mengambil data surat');
+
+			const resData = await response.json();
+			
+			if (resData && resData.data && resData.data.ayat) {
+				const daftarAyat = resData.data.ayat;
+				
+				// 2. Pilih ayat secara acak dari surat yang didapat
+				const randomIndex = Math.floor(Math.random() * daftarAyat.length);
+				const item = daftarAyat[randomIndex];
+
+				// 3. Tampilkan ke elemen HTML
+				if (ayatArab) ayatArab.innerHTML = item.teksArab;
+				if (ayatTerjemahan) ayatTerjemahan.innerHTML = `"${item.teksIndonesia}"`;
+				if (ayatSumber) ayatSumber.innerHTML = `— QS. ${resData.data.namaLatin} : ${item.nomorAyat}`;
+				return;
+			}
+			
+			throw new Error('Format data tidak sesuai');
+		} catch (e) {
+			// Fallback jika terjadi error
+			if (ayatArab) ayatArab.innerHTML = 'فَسَبِّحْ بِٱسْمِ رَبِّكَ ٱلْعَظِيمِ';
+			if (ayatTerjemahan) ayatTerjemahan.innerHTML = '"Maka bertasbihlah dengan (menyebut) nama Rabbmu yang Maha Agung."';
+			if (ayatSumber) ayatSumber.innerHTML = '— QS. Al-Waqi\'ah : 96';
+		}
+	}
+
+    function showSplashModal() {
+      const modal = document.getElementById('warningModal');
+      const progressBar = document.getElementById('progressBar');
+      const timerText = document.getElementById('timerText');
+      const totalDuration = 7100; // 7 detik
+      const intervalTime = 50; // Update setiap 50ms untuk animasi halus
+      let elapsed = 0;
+
+      if (!modal) return;
+
+      // Reset progress
+      if (progressBar) progressBar.style.width = '0%';
+      if (timerText) timerText.textContent = '⏳ 7 detik';
+
+      // Tampilkan modal dengan fade in
+      modal.classList.remove('hide');
+      modal.classList.add('show');
+
+      // Jalankan progress bar
+      const progressInterval = setInterval(() => {
+        elapsed += intervalTime;
+        const progress = Math.min((elapsed / totalDuration) * 100, 100);
+        
+        if (progressBar) {
+          progressBar.style.width = progress + '%';
+        }
+
+        // Update timer text
+        const remaining = Math.max(0, Math.ceil((totalDuration - elapsed) / 1000));
+        if (timerText) {
+          timerText.textContent = `⏳ ${remaining} detik`;
+        }
+
+        // Selesai
+        if (elapsed >= totalDuration) {
+          clearInterval(progressInterval);
+          // Modal fade out
+          modal.classList.remove('show');
+          modal.classList.add('hide');
+          
+          // Bersihkan setelah animasi selesai
+          setTimeout(() => {
+            if (timerText) timerText.textContent = '✨ Selesai';
+          }, 600);
+        }
+      }, intervalTime);
+    }
+
+    // ===================== INIT =====================
+    document.addEventListener("DOMContentLoaded", function () {
+      // Muat ayat
+      muatAyat();
+      
+      // Tampilkan splash modal
+      setTimeout(() => {
+        showSplashModal();
+      }, 700);
+    });
+  </script>
+</body>
+</html>
